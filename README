@@ -1,0 +1,35 @@
+meta-openamp
+===================
+
+This layer provides support for building libmetal and OpenAMP libraries.
+
+Dependencies
+------------
+This layer depends on:
+
+URI: git://git.openembedded.org/bitbake
+
+URI: git://git.yoctoproject.org/poky
+layers: meta
+        meta-poky
+
+URI: git://github.com/openembedded/meta-openembedded
+layers: meta-oe
+
+Maintenance
+-----------
+
+Send pull requests, patches, comments or questions to open-amp@googlegroups.com
+
+Maintainers:
+	Wendy Liang <wendy.liang@xilinx.com>
+
+When sending single patches, please using something like:
+'git send-email -1 --to open-amp@googlegroups.com --subject-prefix='METAL_OPENAMP PATCH'
+
+License
+-------
+
+All metadata is MIT licensed unless otherwise stated. Source code included
+in tree for individual recipes is under the LICENSE stated in each recipe
+(.bb file) unless otherwise stated.
