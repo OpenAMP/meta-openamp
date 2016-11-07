@@ -7,7 +7,9 @@ SECTION = "libs"
 LICENSE = "BSD"
 LIC_FILES_CHKSUM = "file://LICENSE;md5=b30cbe0b980e98bfd9759b1e6ba3d107"
 
-SRCREV ?= "0a1167cdabeafb035bc992e5069f463828559f64"
+#v2016.10 release
+
+SRCREV ?= "9a117913e2950b7e37820ebc6178dc1452267f48"
 SRC_URI = "git://github.com/OpenAMP/open-amp.git;protocol=https;branch=master"
 
 S = "${WORKDIR}/git"
