@@ -7,14 +7,16 @@ SECTION = "libs"
 LICENSE = "BSD"
 LIC_FILES_CHKSUM = "file://LICENSE;md5=b30cbe0b980e98bfd9759b1e6ba3d107"
 
-#v2016.10 release
-
-SRCREV ?= "9a117913e2950b7e37820ebc6178dc1452267f48"
-SRC_URI = "git://github.com/OpenAMP/open-amp.git;protocol=https;branch=master"
+# Sources, by default allow for the use of SRCREV pointing to orphaned tags/commits
+SRCBRANCH ?= "master"
+SRCBRANCHARG = "${@['nobranch=1', 'branch=${SRCBRANCH}'][d.getVar('SRCBRANCH', True) != '']}"
+SRC_URI = "git://github.com/OpenAMP/open-amp.git;protocol=https;${SRCBRANCHARG}"
 
 S = "${WORKDIR}/git"
 
 DEPENDS = "libmetal"
+
+PROVIDES = "virtual/openamp"
 
 inherit pkgconfig cmake
 
