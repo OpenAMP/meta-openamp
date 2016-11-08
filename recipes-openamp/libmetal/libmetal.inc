@@ -7,12 +7,16 @@ SECTION = "libs"
 LICENSE = "BSD"
 LIC_FILES_CHKSUM = "file://LICENSE.md;md5=395307789d21fd8945fc1c933cad18b5"
 
-SRCREV ?= "9c34a7484dd4bfa557c2b7273f3674b30b3b0cb2"
-SRC_URI = "git://github.com/OpenAMP/libmetal.git;protocol=https;branch=master"
+# Sources, by default allow for the use of SRCREV pointing to orphaned tags/commits
+SRCBRANCH ?= "master"
+SRCBRANCHARG = "${@['nobranch=1', 'branch=${SRCBRANCH}'][d.getVar('SRCBRANCH', True) != '']}"
+SRC_URI = "git://github.com/OpenAMP/libmetal.git;protocol=https;${SRCBRANCHARG}"
 
 S = "${WORKDIR}/git"
 
 DEPENDS = "libhugetlbfs sysfsutils"
+
+PROVIDES = "virtual/libmetal"
 
 inherit pkgconfig cmake
 
