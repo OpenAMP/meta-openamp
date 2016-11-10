@@ -25,7 +25,7 @@ Maintainers:
 	Wendy Liang <wendy.liang@xilinx.com>
 
 When sending single patches, please using something like:
-'git send-email -1 --to open-amp@googlegroups.com --subject-prefix='METAL_OPENAMP PATCH'
+'git send-email -1 --to open-amp@googlegroups.com --subject-prefix='meta-openamp][patch'
 
 License
 -------
