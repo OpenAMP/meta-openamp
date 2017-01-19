@@ -16,7 +16,7 @@ S = "${WORKDIR}/git"
 
 DEPENDS = "libhugetlbfs sysfsutils"
 
-PROVIDES = "virtual/libmetal"
+PROVIDES = "libmetal"
 
 inherit pkgconfig cmake
 
