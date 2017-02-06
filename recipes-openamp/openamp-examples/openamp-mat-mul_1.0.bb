@@ -5,7 +5,7 @@ HOMEPAGE = "https://github.com/OpenAMP/open-amp/"
 LICENSE = "BSD"
 LIC_FILES_CHKSUM = "file://git/LICENSE;md5=b30cbe0b980e98bfd9759b1e6ba3d107"
 
-SRCREV ?= "9a117913e2950b7e37820ebc6178dc1452267f48"
+SRCREV ?= "ea35683b9550f000b702abad9be45b5357c744dd"
 SRC_URI = " \
 	git://github.com/OpenAMP/open-amp.git;protocol=https;branch=master \
 	file://Makefile \
