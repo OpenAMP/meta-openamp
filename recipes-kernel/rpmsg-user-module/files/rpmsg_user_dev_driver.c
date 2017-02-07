@@ -45,7 +45,6 @@ struct _rpmsg_eptdev {
 	struct device dev;
 	struct cdev cdev;
 	wait_queue_head_t usr_wait_q;
-	int block_flag;
 	struct rpmsg_device *rpdev;
 	struct rpmsg_channel_info chinfo;
 	struct rpmsg_endpoint *ept;
