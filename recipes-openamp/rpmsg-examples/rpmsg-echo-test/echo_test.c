@@ -74,16 +74,6 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
-	printf("\r\n Query internal info .. \r\n");
-
-	ioctl(fd, RPMSG_GET_KFIFO_SIZE, &size);
-
-	printf(" rpmsg kernel fifo size = %u \r\n", size);
-
-	ioctl(fd, RPMSG_GET_FREE_SPACE, &size);
-
-	printf(" rpmsg kernel fifo free space = %u \r\n", size);
-
 	i_payload = (struct _payload *)malloc(2 * sizeof(unsigned long) + PAYLOAD_MAX_SIZE);
 	r_payload = (struct _payload *)malloc(2 * sizeof(unsigned long) + PAYLOAD_MAX_SIZE);
 

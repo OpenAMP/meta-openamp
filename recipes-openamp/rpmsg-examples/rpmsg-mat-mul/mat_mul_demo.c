@@ -179,16 +179,10 @@ int main(int argc, char *argv[])
 	printf("\r\n Open rpmsg dev! \r\n");
 
 	fd = open(rpmsg_dev, O_RDWR);
-
-	printf("\r\n Query internal info .. \r\n");
-
-	ioctl(fd, RPMSG_GET_KFIFO_SIZE, &size);
-
-	printf(" rpmsg kernel fifo size = %u \r\n", size);
-
-	ioctl(fd, RPMSG_GET_FREE_SPACE, &size);
-
-	printf(" rpmsg kernel fifo free space = %u \r\n", size);
+	if (fd < 0) {
+		printf("Failed to open device %s.\n", rpmsg_dev);
+		return -1;
+	}
 
 	if (pthread_mutex_init(&sync_lock, NULL) != 0)
 		printf("\r\n mutex initialization failure \r\n");
