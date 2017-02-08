@@ -18,9 +18,6 @@
 
 #define MATRIX_SIZE 6
 
-/* Shutdown message ID */
-#define SHUTDOWN_MSG	0xEF56A55A
-
 struct _matrix {
 	unsigned int size;
 	unsigned int elements[MATRIX_SIZE][MATRIX_SIZE];
@@ -164,8 +161,6 @@ void *compute_thread_entry(void *ptr)
 int main(int argc, char *argv[])
 {
 	unsigned int size;
-	int shutdown_msg = SHUTDOWN_MSG;
-
 	int opt;
 	char *rpmsg_dev="/dev/rpmsg0";
 
@@ -210,14 +205,10 @@ int main(int argc, char *argv[])
 
 	pthread_join(compute_thread, NULL);
 
-	/* Send shutdown message to remote */
-	write(fd, &shutdown_msg , sizeof(int));
-	sleep(1);
+	close(fd);
 
 	printf("\r\n Quitting application .. \r\n");
 	printf(" Matrix multiply application end \r\n");
-
-	close(fd);
 
 	pthread_mutex_destroy(&sync_lock);
 

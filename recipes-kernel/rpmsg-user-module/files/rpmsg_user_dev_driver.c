@@ -50,6 +50,7 @@ struct _rpmsg_eptdev {
 	struct rpmsg_endpoint *ept;
 	spinlock_t queue_lock;
 	struct sk_buff_head queue;
+	bool is_sk_queue_closed;
 	wait_queue_head_t readq;
 };
 
@@ -64,9 +65,25 @@ static int rpmsg_dev_open(struct inode *inode, struct file *filp)
 {
 	/* Initialize rpmsg instance with device params from inode */
 	struct _rpmsg_eptdev *local = cdev_to_eptdev(inode->i_cdev);
+	struct rpmsg_device *rpdev = local->rpdev;
+	unsigned long flags;
 
 	filp->private_data = local;
 
+	spin_lock_irqsave(&local->queue_lock, flags);
+	local->is_sk_queue_closed = false;
+	spin_unlock_irqrestore(&local->queue_lock, flags);
+
+	if (rpmsg_sendto(rpdev->ept,
+			RPMG_INIT_MSG,
+			sizeof(RPMG_INIT_MSG),
+			rpdev->dst)) {
+		dev_err(&rpdev->dev,
+			"Failed to send init_msg to target 0x%x.",
+			rpdev->dst);
+		return -ENODEV;
+	}
+	dev_info(&rpdev->dev, "Sent init_msg to target 0x%x.", rpdev->dst);
 	return 0;
 }
 
@@ -162,6 +179,28 @@ static long rpmsg_dev_ioctl(struct file *p_file, unsigned int cmd,
 static int rpmsg_dev_release(struct inode *inode, struct file *p_file)
 {
 	struct _rpmsg_eptdev *eptdev = cdev_to_eptdev(inode->i_cdev);
+	struct rpmsg_device *rpdev = eptdev->rpdev;
+	struct sk_buff *skb;
+	unsigned int msg = SHUTDOWN_MSG;
+
+	spin_lock(&eptdev->queue_lock);
+	eptdev->is_sk_queue_closed = true;
+	spin_unlock(&eptdev->queue_lock);
+
+	/* Delete the skb buffers */
+	while(!skb_queue_empty(&eptdev->queue)) {
+		skb = skb_dequeue(&eptdev->queue);
+		kfree_skb(skb);
+	}
+
+	if (rpmsg_send(eptdev->ept,
+			&msg,
+			sizeof(msg))) {
+		dev_err(&rpdev->dev,
+			"Failed to send shutdown message.\n");
+		return -EINVAL;
+	}
+	dev_info(&rpdev->dev, "Sent shtudown message.\n");
 
 	put_device(&eptdev->dev);
 	return 0;
@@ -180,15 +219,10 @@ static const struct file_operations rpmsg_dev_fops = {
 static void rpmsg_user_dev_release_device(struct device *dev)
 {
 	struct _rpmsg_eptdev *eptdev = dev_to_eptdev(dev);
-	struct sk_buff *skb;
 
 	dev_info(dev, "Releasing rpmsg user dev device.\n");
 	ida_simple_remove(&rpmsg_minor_ida, dev->id);
 	cdev_del(&eptdev->cdev);
-	while(!skb_queue_empty(&eptdev->queue)) {
-		skb = skb_dequeue(&eptdev->queue);
-		kfree_skb(skb);
-	}
 	/* No need to free the local dev memory eptdev.
 	 * It will be freed by the system when the dev is freed
 	 */
@@ -208,6 +242,11 @@ static int rpmsg_user_dev_rpmsg_drv_cb(struct rpmsg_device *rpdev, void *data,
 	memcpy(skb_put(skb, len), data, len);
 
 	spin_lock(&local->queue_lock);
+	if (local->is_sk_queue_closed) {
+		kfree(skb);
+		spin_unlock(&local->queue_lock);
+		return 0;
+	}
 	skb_queue_tail(&local->queue, skb);
 	spin_unlock(&local->queue_lock);
 
@@ -239,18 +278,6 @@ static int rpmsg_user_dev_rpmsg_drv_probe(struct rpmsg_device *rpdev)
 
 	local->rpdev = rpdev;
 	local->ept = rpdev->ept;
-
-
-	if (rpmsg_sendto(local->ept,
-			RPMG_INIT_MSG,
-			sizeof(RPMG_INIT_MSG),
-			rpdev->dst)) {
-		dev_err(&rpdev->dev,
-			"Failed to send init_msg to target 0x%x.",
-			rpdev->dst);
-		return -ENODEV;
-	}
-	dev_info(&rpdev->dev, "Sent init_msg to target 0x%x.", rpdev->dst);
 
 	dev = &local->dev;
 	device_initialize(dev);

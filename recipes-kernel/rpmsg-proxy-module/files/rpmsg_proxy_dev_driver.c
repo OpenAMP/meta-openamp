@@ -53,6 +53,7 @@ struct _rpmsg_eptdev {
 	struct rpmsg_endpoint *ept;
 	spinlock_t queue_lock;
 	struct sk_buff_head queue;
+	bool is_sk_queue_closed;
 	wait_queue_head_t readq;
 };
 
@@ -82,6 +83,11 @@ static int rpmsg_proxy_dev_rpmsg_drv_cb(struct rpmsg_device *rpdev, void *data,
 	memcpy(skb_put(skb, len), data, len);
 
 	spin_lock(&local->queue_lock);
+	if (local->is_sk_queue_closed) {
+		kfree(skb);
+		spin_unlock(&local->queue_lock);
+		return 0;
+	}
 	skb_queue_tail(&local->queue, skb);
 	spin_unlock(&local->queue_lock);
 
@@ -96,8 +102,13 @@ static int rpmsg_dev_open(struct inode *inode, struct file *filp)
 	/* Initialize rpmsg instance with device params from inode */
 	struct _rpmsg_eptdev *local = cdev_to_eptdev(inode->i_cdev);
 	struct rpmsg_device *rpdev = local->rpdev;
+	unsigned long flags;
 
 	filp->private_data = local;
+
+	spin_lock_irqsave(&local->queue_lock, flags);
+	local->is_sk_queue_closed = false;
+	spin_unlock_irqrestore(&local->queue_lock, flags);
 
 	local->ept = rpmsg_create_ept(rpdev, rpmsg_proxy_dev_rpmsg_drv_cb,
 			local, proxy_rpmsg_chn);
@@ -106,7 +117,7 @@ static int rpmsg_dev_open(struct inode *inode, struct file *filp)
 		return -ENODEV;
 	}
 
-	if (rpmsg_sendto(local->ept,
+	if (rpmsg_sendto(rpdev->ept,
 			RPMG_INIT_MSG,
 			sizeof(RPMG_INIT_MSG),
 			rpdev->dst)) {
@@ -216,6 +227,16 @@ static int rpmsg_dev_release(struct inode *inode, struct file *p_file)
 	struct sk_buff *skb;
 	int msg = TERM_SYSCALL_ID;
 
+	spin_lock(&eptdev->queue_lock);
+	eptdev->is_sk_queue_closed = true;
+	spin_unlock(&eptdev->queue_lock);
+
+	/* Delete the skb buffers */
+	while(!skb_queue_empty(&eptdev->queue)) {
+		skb = skb_dequeue(&eptdev->queue);
+		kfree_skb(skb);
+	}
+
 	if (rpmsg_send(eptdev->ept,
 			&msg,
 			sizeof(msg))) {
@@ -227,12 +248,6 @@ static int rpmsg_dev_release(struct inode *inode, struct file *p_file)
 
 	/* Destroy the proxy endpoint */
 	rpmsg_destroy_ept(eptdev->ept);
-
-	/* Delete the skb buffers */
-	while(!skb_queue_empty(&eptdev->queue)) {
-		skb = skb_dequeue(&eptdev->queue);
-		kfree_skb(skb);
-	}
 
 	put_device(&eptdev->dev);
 	return 0;

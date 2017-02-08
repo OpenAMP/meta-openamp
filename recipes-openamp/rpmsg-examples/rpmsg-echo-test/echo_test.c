@@ -22,7 +22,6 @@
 #include <string.h>
 
 /* Shutdown message ID */
-#define SHUTDOWN_MSG	0xEF56A55A
 
 struct _payload {
 	unsigned long num;
@@ -45,12 +44,9 @@ struct _payload *r_payload;
 #define PAYLOAD_MAX_SIZE	(MAX_RPMSG_BUFF_SIZE - 24)
 #define NUM_PAYLOADS		(PAYLOAD_MAX_SIZE/PAYLOAD_MIN_SIZE)
 
-
-
 int main(int argc, char *argv[])
 {
 	int flag = 1;
-	int shutdown_msg = SHUTDOWN_MSG;
 	int cmd, ret, i, expect_rnum;
 	int size, bytes_rcvd, bytes_sent;
 	err_cnt = 0;
@@ -174,9 +170,7 @@ int main(int argc, char *argv[])
 			printf("****\r\n");
 		} else if (cmd == 2) {
 			flag = 0;
-			/* Send shutdown message to remote */
-			write(fd, &shutdown_msg, sizeof(int));
-			sleep(1);
+			close(fd);
 			printf("\r\n Quitting application .. \r\n");
 			printf(" Echo test end \r\n");
 		} else {
@@ -186,8 +180,6 @@ int main(int argc, char *argv[])
 
 	free(i_payload);
 	free(r_payload);
-
-	close(fd);
 
 	return 0;
 }
