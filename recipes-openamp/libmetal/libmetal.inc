@@ -7,10 +7,12 @@ SECTION = "libs"
 LICENSE = "BSD"
 LIC_FILES_CHKSUM = "file://LICENSE.md;md5=395307789d21fd8945fc1c933cad18b5"
 
+REPO ?= "git://github.com/OpenAMP/libmetal.git;protocol=https"
+BRANCH ?= "master"
+
 # Sources, by default allow for the use of SRCREV pointing to orphaned tags/commits
-SRCBRANCH ?= "master"
-SRCBRANCHARG = "${@['nobranch=1', 'branch=${SRCBRANCH}'][d.getVar('SRCBRANCH', True) != '']}"
-SRC_URI = "git://github.com/OpenAMP/libmetal.git;protocol=https;${SRCBRANCHARG}"
+BRANCHARG = "${@['nobranch=1', 'branch=${BRANCH}'][d.getVar('BRANCH', True) != '']}"
+SRC_URI = "${REPO};${BRANCHARG}"
 
 S = "${WORKDIR}/git"
 

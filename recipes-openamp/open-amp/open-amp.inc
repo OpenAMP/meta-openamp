@@ -7,10 +7,12 @@ SECTION = "libs"
 LICENSE = "BSD"
 LIC_FILES_CHKSUM = "file://LICENSE;md5=b30cbe0b980e98bfd9759b1e6ba3d107"
 
+REPO ?= "git://github.com/OpenAMP/open-amp.git;protocol=https"
+BRANCH ?= "master"
+
 # Sources, by default allow for the use of SRCREV pointing to orphaned tags/commits
-SRCBRANCH ?= "master"
-SRCBRANCHARG = "${@['nobranch=1', 'branch=${SRCBRANCH}'][d.getVar('SRCBRANCH', True) != '']}"
-SRC_URI = "git://github.com/OpenAMP/open-amp.git;protocol=https;${SRCBRANCHARG}"
+BRANCHARG = "${@['nobranch=1', 'branch=${BRANCH}'][d.getVar('BRANCH', True) != '']}"
+SRC_URI = "${REPO};${BRANCHARG}"
 
 S = "${WORKDIR}/git"
 
