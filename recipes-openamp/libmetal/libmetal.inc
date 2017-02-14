@@ -28,5 +28,24 @@ EXTRA_OECMAKE = " \
 	-DMACHINE=${SOC_FAMILY} \
 	"
 
-# Only builds the library but not the demo apps.
-#EXTRA_OECMAKE_append_zynqmp = "-DWITH_EXAMPLES=ON"
+EXTRA_OECMAKE_append_zynqmp = "-DWITH_EXAMPLES=ON"
+
+PACKAGES_append_zynqmp += "${PN}-demos"
+
+FILES_${PN} = " \
+    ${libdir}/*.so* \
+    ${bindir}/test-* \
+"
+FILES_${PN}-demos = " \
+    ${bindir}/libmetal_* \
+"
+
+do_install_append_zynqmp () {
+	# Only install the shared lib binaries
+	rm -rf ${D}/${bindir}/*-static
+
+	for f in `find ${D}/${bindir}/ -type f -regex ".*-shared*"`; do
+		newf="`echo ${f} | sed 's/-shared*$//g'`"
+		mv "${f}" "${newf}"
+	done
+}
