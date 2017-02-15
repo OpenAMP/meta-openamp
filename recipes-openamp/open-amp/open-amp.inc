@@ -18,7 +18,7 @@ S = "${WORKDIR}/git"
 
 DEPENDS = "libmetal"
 
-PROVIDES = "virtual/openamp"
+PROVIDES = "openamp"
 
 inherit pkgconfig cmake
 
@@ -29,5 +29,27 @@ EXTRA_OECMAKE = " \
 	-DWITH_PROXY=OFF \
 	"
 
-# Only builds the library but not the applications
-#EXTRA_OECMAKE_append_zynqmp = "-DWITH_APPS=ON"
+# OpenAMP apps not ready for Zynq
+EXTRA_OECMAKE_append_zynqmp = "-DWITH_APPS=ON"
+
+PACKAGES_append_zynqmp += "${PN}-demos"
+
+FILES_${PN} = " \
+    ${libdir}/*.so* \
+"
+
+FILES_${PN}-demos = " \
+    ${bindir}/*-openamp \
+"
+do_install_append_zynqmp () {
+	# Only install echo test client, matrix multiplication client,
+	# and proxy app server for ZynqMP
+	mv ${D}/${bindir}/echo_test-shared \
+		${D}/${bindir}/echo_test-openamp
+	mv ${D}/${bindir}/matrix_multiply-shared \
+		${D}/${bindir}/mat_mul-openamp
+	mv ${D}/${bindir}/rpc_demod-shared \
+		${D}/${bindir}/proxy_app-openamp
+
+	rm -rf ${D}/${bindir}/*-static ${D}/${bindir}/*-shared
+}
