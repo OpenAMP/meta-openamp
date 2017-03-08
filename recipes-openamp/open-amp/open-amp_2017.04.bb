@@ -1,4 +1,4 @@
 SRCBRANCH ?= "master"
-SRCREV ?= "ea35683b9550f000b702abad9be45b5357c744dd"
+SRCREV = "d859dc047a93f2ce01d230f6bff0f3236201d9d4"
 
 include open-amp.inc
