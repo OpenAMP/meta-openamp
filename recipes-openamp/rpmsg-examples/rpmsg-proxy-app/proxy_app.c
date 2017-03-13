@@ -7,16 +7,11 @@
 #include <sys/ioctl.h>
 #include <signal.h>
 #include <unistd.h>
+#include <errno.h>
 #include "proxy_app.h"
 
 #define RPC_BUFF_SIZE 512
 #define RPC_CHANNEL_READY_TO_CLOSE "rpc_channel_ready_to_close"
-
-#ifndef RPROC_MODULE_NAME
-#define RPROC_MODULE_NAME "zynqmp_r5_remoteproc"
-#endif
-
-#define SIZE_MODULE_NAME 50
 
 struct _proxy_data {
 	int active;
@@ -28,12 +23,13 @@ struct _proxy_data {
 
 static struct _proxy_data *proxy;
 char fw_dst_path[] = "/lib/firmware/image_rpc_demo";
-char cp_cmd[512];
-char module_name[SIZE_MODULE_NAME];
+char sbuf[512];
+int r5_id = 0;
 
 int handle_open(struct _sys_rpc *rpc)
 {
-	int fd, bytes_written;
+	int fd;
+	ssize_t bytes_written;
 
 	/* Open remote fd */
 	fd = open(rpc->sys_call_args.data, rpc->sys_call_args.int_field1,
@@ -54,7 +50,8 @@ int handle_open(struct _sys_rpc *rpc)
 
 int handle_close(struct _sys_rpc *rpc)
 {
-	int retval, bytes_written;
+	int retval;
+	ssize_t bytes_written;
 
 	/* Close remote fd */
 	retval = close(rpc->sys_call_args.int_field1);
@@ -74,7 +71,8 @@ int handle_close(struct _sys_rpc *rpc)
 
 int handle_read(struct _sys_rpc *rpc)
 {
-	int bytes_read, bytes_written, payload_size;
+	ssize_t bytes_read, bytes_written;
+	size_t  payload_size;
 	char *buff;
 
 	/* Allocate buffer for requested data size */
@@ -110,7 +108,7 @@ int handle_read(struct _sys_rpc *rpc)
 
 int handle_write(struct _sys_rpc *rpc)
 {
-	int bytes_written;
+	ssize_t bytes_written;
 
 	/* Write to remote fd */
 	bytes_written = write(rpc->sys_call_args.int_field1,
@@ -183,6 +181,45 @@ int terminate_rpc_app()
 	//return bytes_written;
 }
 
+/* write a string to an existing and writtable file */
+int file_write(char *path, char *str)
+{
+	int fd;
+	ssize_t bytes_written;
+	size_t str_sz;
+
+	fd = open(path, O_WRONLY);
+	if (fd == -1) {
+		perror("Error");
+		return -1;
+	}
+	str_sz = strlen(str);
+	bytes_written = write(fd, str, str_sz);
+	if (bytes_written != str_sz) {
+	        if (bytes_written == -1) {
+			perror("Error");
+		} 
+		close(fd);
+		return -1;
+	}
+
+	if (-1 == close(fd)) {
+		perror("Error");
+		return -1;
+	}
+	return 0;
+}
+
+/* Stop remote CPU and Unload drivers */
+void stop_remote(void)
+{
+	system("modprobe -r rpmsg_proxy_dev_driver");
+	sprintf(sbuf, 
+		"/sys/class/remoteproc/remoteproc%u/state", 
+		r5_id);
+	(void)file_write(sbuf, "stop");
+}
+
 void exit_action_handler(int signum)
 {
 	proxy->active = 0;
@@ -205,23 +242,16 @@ void kill_action_handler(int signum)
 	free(proxy->rpc_response);
 	free(proxy);
 
-	/* Unload drivers */
-	system("modprobe -r rpmsg_proxy_dev_driver");
-	system("modprobe -r virtio_rpmsg_bus");
-	sprintf(cp_cmd, "modprobe -r %s", module_name);
-	system(cp_cmd);
-	system("modprobe -r remoteproc");
-	system("modprobe -r virtio_ring");
-	system("modprobe -r virtio");
+	/* Stop remote cpu and unload drivers */
+	stop_remote();
 }
 
-void display_help_msg()
+void display_help_msg(void)
 {
 	printf("\r\nLinux proxy application.\r\n");
 	printf("-v	 Displays proxy application version.\n");
 	printf("-f	 Accepts path of firmware to load on remote core.\n");
 	printf("-r       Which core 0|1\n");
-	printf("-m	 rproc module name.\n");
 	printf("-h	 Displays this help message.\n");
 }
 
@@ -234,10 +264,7 @@ int main(int argc, char *argv[])
 	int i = 0;
 	int opt = 0;
 	int ret = 0;
-	int r5_id = 0;
 	char *user_fw_path = 0;
-
-	strcpy(module_name, RPROC_MODULE_NAME);
 
 	/* Initialize signalling infrastructure */
 	memset(&exit_action, 0, sizeof(struct sigaction));
@@ -249,7 +276,7 @@ int main(int argc, char *argv[])
 	sigaction(SIGKILL, &kill_action, NULL);
 	sigaction(SIGHUP, &kill_action, NULL);
 
-	while ((opt = getopt(argc, argv, "vhf:r:m:")) != -1) {
+	while ((opt = getopt(argc, argv, "vhf:r:")) != -1) {
 		switch (opt) {
 		case 'f':
 			user_fw_path = optarg;
@@ -261,12 +288,8 @@ int main(int argc, char *argv[])
 				return -1;
 			}
 			break;
-		case 'm':
-			strncpy(module_name, optarg, SIZE_MODULE_NAME);
-			module_name[SIZE_MODULE_NAME - 1] = '\0';
-			break;
 		case 'v':
-			printf("\r\nLinux proxy application version 1.0\r\n");
+			printf("\r\nLinux proxy application version 1.1\r\n");
 			return 0;
 		case 'h':
 			display_help_msg();
@@ -276,34 +299,29 @@ int main(int argc, char *argv[])
 			break;
 		}
 	}
-	/* Parse and process input args */
-	for (i = 1; i < argc; i++) {
-		if (strcmp(argv[i], "-v") == 0) {
-			printf("\r\nLinux proxy application version 1.0\r\n");
-			return 0;
-		} else if (strcmp(argv[i], "-h") == 0) {
-			display_help_msg();
-			return 0;
-		} else if (strcmp(argv[i], "-f") == 0) {
-			if (i+1 < argc)
-				/* Construct file copy command string */
-				sprintf(cp_cmd , "cp %s %s", argv[i+1],
-						fw_dst_path);
-		}
-	}
 
 	/* Bring up remote firmware */
 	printf("\r\nMaster>Loading remote firmware\r\n");
 	if (user_fw_path) {
-		sprintf(cp_cmd, "cp %s %s", user_fw_path, fw_dst_path);
-		system(cp_cmd);
+		sprintf(sbuf, "cp %s %s", user_fw_path, fw_dst_path);
+		system(sbuf);
 	}
-	sprintf(cp_cmd, "modprobe %s firmware", module_name);
-	if (r5_id == 1)
-		sprintf(&cp_cmd[strlen(cp_cmd)],"1=image_rpc_demo");
-	else
-		sprintf(&cp_cmd[strlen(cp_cmd)],"=image_rpc_demo");
-	system(cp_cmd);
+
+	/* Write firmware name to remoteproc sysfs interface */
+	sprintf(sbuf, 
+		"/sys/class/remoteproc/remoteproc%u/firmware", 
+		r5_id);
+	if (0 != file_write(sbuf, "image_rpc_demo")) {
+		return -1;
+	}
+
+	/* Tell remoteproc to load and start remote cpu */
+	sprintf(sbuf, 
+		"/sys/class/remoteproc/remoteproc%u/state", 
+		r5_id);
+	if (0 != file_write(sbuf, "start")) {
+		return -1;
+	}
 
 	/* Create rpmsg proxy device */
 	printf("\r\nMaster>Create rpmsg proxy device\r\n");
@@ -370,11 +388,6 @@ int main(int argc, char *argv[])
 	/* Close proxy rpmsg device */
 	close(proxy->rpmsg_proxy_fd);
 
-
-	/* Need to wait here for sometime to allow remote application to
-	complete its unintialization */
-	//sleep(1);
-
 	/* Free up resources */
 	free(proxy->rpc);
 	free(proxy->rpc_response);
@@ -382,14 +395,7 @@ int main(int argc, char *argv[])
 error0:
 	free(proxy);
 
-	/* Unload drivers */
-	sprintf(cp_cmd, "modprobe -r %s", module_name);
-	system(cp_cmd);
-	system("modprobe -r remoteproc");
-	system("modprobe -r rpmsg_proxy_dev_driver");
-	system("modprobe -r virtio_rpmsg_bus");
-	system("modprobe -r virtio_ring");
-	system("modprobe -r virtio");
+	stop_remote();
 
 	return ret;
 }
