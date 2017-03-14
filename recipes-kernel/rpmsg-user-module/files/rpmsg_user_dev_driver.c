@@ -193,6 +193,7 @@ static int rpmsg_dev_release(struct inode *inode, struct file *p_file)
 		kfree_skb(skb);
 	}
 
+	dev_info(&rpdev->dev, "Sending shutdown message.\n");
 	if (rpmsg_send(eptdev->ept,
 			&msg,
 			sizeof(msg))) {
@@ -200,9 +201,8 @@ static int rpmsg_dev_release(struct inode *inode, struct file *p_file)
 			"Failed to send shutdown message.\n");
 		return -EINVAL;
 	}
-	dev_info(&rpdev->dev, "Sent shtudown message.\n");
 
-	put_device(&eptdev->dev);
+	put_device(&rpdev->dev);
 	return 0;
 }
 

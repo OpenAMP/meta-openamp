@@ -237,6 +237,7 @@ static int rpmsg_dev_release(struct inode *inode, struct file *p_file)
 		kfree_skb(skb);
 	}
 
+	dev_info(&rpdev->dev, "Sending terminate message.\n");
 	if (rpmsg_send(eptdev->ept,
 			&msg,
 			sizeof(msg))) {
@@ -244,12 +245,11 @@ static int rpmsg_dev_release(struct inode *inode, struct file *p_file)
 			"Failed to send terminate message.\n");
 		return -EINVAL;
 	}
-	dev_info(&rpdev->dev, "Sent terminate message.\n");
 
 	/* Destroy the proxy endpoint */
 	rpmsg_destroy_ept(eptdev->ept);
 
-	put_device(&eptdev->dev);
+	put_device(&rpdev->dev);
 	return 0;
 }
 
