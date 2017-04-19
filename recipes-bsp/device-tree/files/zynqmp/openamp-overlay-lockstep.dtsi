@@ -39,23 +39,11 @@
 	amba {
 		r5_0_tcm_a: tcm@ffe00000 {
 			compatible = "mmio-sram";
-			reg = <0 0xFFE00000 0x0 0x10000>;
-			pd-handle = <&pd_tcm_0_a>;
-		};
-		r5_0_tcm_b: tcm@ffe20000 {
-			compatible = "mmio-sram";
-			reg = <0 0xFFE10000 0x0 0x10000>;
-			pd-handle = <&pd_tcm_0_b>;
-		};
-		r5_1_tcm_a: tcm@ffe90000 {
-			compatible = "mmio-sram";
-			reg = <0 0xFFE20000 0x0 0x10000>;
-			pd-handle = <&pd_tcm_1_a>;
-		};
-		r5_1_tcm_b: tcm@ffe92000 {
-			compatible = "mmio-sram";
-			reg = <0 0xFFE30000 0x0 0x10000>;
-			pd-handle = <&pd_tcm_1_b>;
+			reg = <0 0xFFE00000 0x0 0x40000>;
+			pd-handle = <&pd_tcm_0_a
+				&pd_tcm_0_b
+				&pd_tcm_1_a
+				&pd_tcm_1_b>;
 		};
 
 		elf_ddr_0: ddr@3ed00000 {
@@ -75,10 +63,7 @@
 			dma-ranges;
 			core_conf = "lock-step";
 			sram_0 = <&r5_0_tcm_a>;
-			sram_1 = <&r5_0_tcm_b>;
-			sram_2 = <&r5_1_tcm_a>;
-			sram_3 = <&r5_1_tcm_b>;
-			sram_4 = <&elf_ddr_0>;
+			sram_2 = <&elf_ddr_0>;
 			pd-handle = <&pd_r5_0>;
 			interrupt-parent = <&gic>;
 			interrupts = <0 29 4>;
