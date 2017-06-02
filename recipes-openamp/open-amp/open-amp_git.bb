@@ -1,5 +1,5 @@
 SRCBRANCH ?= "master"
-SRCREV ?= "d859dc047a93f2ce01d230f6bff0f3236201d9d4"
+SRCREV ?= "a1fb0099e81f439734696c984690ef8d9812c6c9"
 PV = "${SRCBRANCH}+git${SRCPV}"
 
 include open-amp.inc
