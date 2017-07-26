@@ -62,8 +62,7 @@
 			reg-names = "rpu_base", "ipi", "rpu_glbl_base";
 			dma-ranges;
 			core_conf = "lock-step";
-			sram_0 = <&r5_0_tcm_a>;
-			sram_2 = <&elf_ddr_0>;
+			srams = <&r5_0_tcm_a &elf_ddr_0>;
 			pd-handle = <&pd_r5_0>;
 			interrupt-parent = <&gic>;
 			interrupts = <0 29 4>;
