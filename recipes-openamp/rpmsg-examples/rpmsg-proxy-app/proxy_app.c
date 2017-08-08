@@ -73,10 +73,7 @@ int handle_read(struct _sys_rpc *rpc)
 {
 	ssize_t bytes_read, bytes_written;
 	size_t  payload_size;
-	char *buff;
-
-	/* Allocate buffer for requested data size */
-	buff = malloc(rpc->sys_call_args.int_field2);
+	char *buff = proxy->rpc_response->sys_call_args.data;
 
 	if (rpc->sys_call_args.int_field1 == 0)
 		/* Perform read from fd for large size since this is a
@@ -92,9 +89,6 @@ int handle_read(struct _sys_rpc *rpc)
 	proxy->rpc_response->sys_call_args.int_field1 = bytes_read;
 	proxy->rpc_response->sys_call_args.int_field2 = 0; /* not used */
 	proxy->rpc_response->sys_call_args.data_len = bytes_read;
-	if (bytes_read > 0)
-		memcpy(proxy->rpc_response->sys_call_args.data, buff,
-			bytes_read);
 
 	payload_size = sizeof(struct _sys_rpc) +
 			((bytes_read > 0) ? bytes_read : 0);
