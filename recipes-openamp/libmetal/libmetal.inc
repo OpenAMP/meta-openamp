@@ -16,7 +16,7 @@ SRC_URI = "${REPO};${BRANCHARG}"
 
 S = "${WORKDIR}/git"
 
-DEPENDS = "libhugetlbfs sysfsutils"
+DEPENDS = "sysfsutils"
 
 PROVIDES = "libmetal"
 
