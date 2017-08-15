@@ -16,6 +16,8 @@ SRC_URI = "${REPO};${BRANCHARG}"
 
 S = "${WORKDIR}/git"
 
+# if user want to enable hugetlbfs support, please
+# add "DEPENDS_append_pn-libmetal = " libhugetlbfs "" to your local.conf
 DEPENDS = "sysfsutils"
 
 PROVIDES = "libmetal"
