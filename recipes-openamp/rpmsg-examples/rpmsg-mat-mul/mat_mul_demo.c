@@ -72,6 +72,7 @@ static pthread_t ui_thread, compute_thread;
 static pthread_mutex_t sync_lock;
 
 static int fd, compute_flag;
+static int ntimes = 1;
 static struct _matrix i_matrix[2];
 static struct _matrix r_matrix;
 
@@ -80,57 +81,40 @@ static struct _matrix r_matrix;
 
 void *ui_thread_entry(void *ptr)
 {
-	int cmd, ret;
-	int flag = 1;
+	int cmd, ret, i;
 
-	while (flag) {
-		printf("\r\n **************************************** \r\n");
-		printf(" Please enter command and press enter key\r\n");
-		printf(" **************************************** \r\n");
-		printf(" 1 - Generates random 6x6 matrices and transmits");
-		printf(" them to remote core over rpmsg .. \r\n");
-		printf(" 2 - Quit this application .. \r\n");
-		printf(" CMD>");
-		ret = scanf("%d", &cmd);
-		if (!ret) {
-			while (1) {
-				if (getchar() == '\n')
-					break;
-			}
+	for (i=0; i < ntimes; i++){
+		printf("\r\n **********************************");
+		printf("****\r\n");
+		printf("\r\n  Matrix multiplication demo Round %d \r\n", i);
+		printf("\r\n **********************************");
+		printf("****\r\n");
+		compute_flag = 1;
+		pthread_mutex_unlock(&sync_lock);
 
-			printf("\r\n invalid command\r\n");
-			continue;
-		}
-		if (cmd == 1) {
-			compute_flag = 1;
-			pthread_mutex_unlock(&sync_lock);
+		printf("\r\n Compute thread unblocked .. \r\n");
+		printf(" The compute thread is now blocking on");
+		printf("a read() from rpmsg device \r\n");
+		printf("\r\n Generating random matrices now ... \r\n");
 
-			printf("\r\n Compute thread unblocked .. \r\n");
-			printf(" The compute thread is now blocking on");
-			printf("a read() from rpmsg device \r\n");
-			printf("\r\n Generating random matrices now ... \r\n");
+		generate_matrices(2, 6, i_matrix);
 
-			generate_matrices(2, 6, i_matrix);
+		printf("\r\n Writing generated matrices to rpmsg ");
+		printf("rpmsg device, %d bytes .. \r\n",
+				sizeof(i_matrix));
 
-			printf("\r\n Writing generated matrices to rpmsg ");
-			printf("rpmsg device, %d bytes written .. \r\n",
-					sizeof(i_matrix));
+		write(fd, i_matrix, sizeof(i_matrix));
 
-			write(fd, i_matrix, sizeof(i_matrix));
-
-			/* adding this so the threads
-			dont overlay the strings they print */
-			sleep(1);
-		} else if (cmd == 2) {
-			flag = 0;
-			compute_flag = 0;
-			pthread_mutex_unlock(&sync_lock);
-			printf("\r\n Quitting application .. \r\n");
-			printf(" Matrix multiplication demo end \r\n");
-		} else {
-			printf("\r\n invalid command! \r\n");
-		}
+		/* adding this so the threads
+		dont overlay the strings they print */
+		sleep(1);
+		printf("\r\nEnd of Matrix multiplication demo Round %d \r\n", i);
 	}
+
+	compute_flag = 0;
+	pthread_mutex_unlock(&sync_lock);
+	printf("\r\n Quitting application .. \r\n");
+	printf(" Matrix multiplication demo end \r\n");
 
 	return 0;
 }
@@ -164,10 +148,13 @@ int main(int argc, char *argv[])
 	int opt;
 	char *rpmsg_dev="/dev/rpmsg0";
 
-	while ((opt = getopt(argc, argv, "d:")) != -1) {
+	while ((opt = getopt(argc, argv, "dn:")) != -1) {
 		switch (opt) {
 		case 'd':
 			rpmsg_dev = optarg;
+			break;
+		case 'n':
+			ntimes = atoi(optarg);
 			break;
 		default:
 			printf("getopt return unsupported option: -%c\n",opt);

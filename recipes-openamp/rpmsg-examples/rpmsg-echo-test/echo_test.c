@@ -1,5 +1,5 @@
 /*
- * temp.c
+ * echo_test.c
  *
  *  Created on: Oct 4, 2014
  *      Author: etsam
@@ -47,16 +47,20 @@ struct _payload *r_payload;
 int main(int argc, char *argv[])
 {
 	int flag = 1;
-	int cmd, ret, i, expect_rnum;
+	int cmd, ret, i, j;
 	int size, bytes_rcvd, bytes_sent;
 	err_cnt = 0;
 	int opt;
 	char *rpmsg_dev="/dev/rpmsg0";
+	int ntimes = 1;
 
-	while ((opt = getopt(argc, argv, "d:")) != -1) {
+	while ((opt = getopt(argc, argv, "dn:")) != -1) {
 		switch (opt) {
 		case 'd':
 			rpmsg_dev = optarg;
+			break;
+		case 'n':
+			ntimes = atoi(optarg);
 			break;
 		default:
 			printf("getopt return unsupported option: -%c\n",opt);
@@ -82,90 +86,65 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
-	while (flag == 1) {
-		printf("\r\n **************************************** \r\n");
-		printf(" Please enter command and press enter key\r\n");
-		printf(" **************************************** \r\n");
-		printf(" 1 - Send data to remote core, retrieve the echo");
-		printf(" and validate its integrity .. \r\n");
-		printf(" 2 - Quit this application .. \r\n");
-		printf(" CMD>");
-		ret = scanf("%d", &cmd);
-		if (!ret) {
-			while (1) {
-				if (getchar() == '\n')
-					break;
+	for (j=0; j < ntimes; j++){
+		printf("\r\n **********************************");
+		printf("****\r\n");
+		printf("\r\n  Echo Test Round %d \r\n", j);
+		printf("\r\n **********************************");
+		printf("****\r\n");
+		for (i = 0, size = PAYLOAD_MIN_SIZE; i < NUM_PAYLOADS;
+		i++, size++) {
+			i_payload->num = i;
+			i_payload->size = size;
+
+			/* Mark the data buffer. */
+			memset(&(i_payload->data[0]), 0xA5, size);
+
+			printf("\r\n sending payload number");
+			printf(" %d of size %d\r\n", i_payload->num,
+			(2 * sizeof(unsigned long)) + size);
+
+			bytes_sent = write(fd, i_payload,
+			(2 * sizeof(unsigned long)) + size);
+
+			if (bytes_sent <= 0) {
+				printf("\r\n Error sending data");
+				printf(" .. \r\n");
+				break;
 			}
+			printf("echo test: sent : %d\n", bytes_sent);
 
-			printf("\r\n invalid command\r\n");
-			continue;
-		}
+			r_payload->num = 0;
+			bytes_rcvd = read(fd, r_payload,
+					(2 * sizeof(unsigned long)) + PAYLOAD_MAX_SIZE);
+			while (bytes_rcvd <= 0) {
+				usleep(10000);
+				bytes_rcvd = read(fd, r_payload,
+					(2 * sizeof(unsigned long)) + PAYLOAD_MAX_SIZE);
+			}
+			printf(" received payload number ");
+			printf("%d of size %d\r\n", r_payload->num, bytes_rcvd);
 
-		if (cmd == 1) {
-			expect_rnum = 0;
-			for (i = 0, size = PAYLOAD_MIN_SIZE; i < NUM_PAYLOADS;
-			i++, size++) {
-				i_payload->num = i;
-				i_payload->size = size;
+			/* Validate data buffer integrity. */
+			for (i = 0; i < r_payload->size; i++) {
 
-				/* Mark the data buffer. */
-				memset(&(i_payload->data[0]), 0xA5, size);
-
-				printf("\r\n sending payload number");
-				printf(" %d of size %d \r\n", i_payload->num,
-				(2 * sizeof(unsigned long)) + size);
-
-				bytes_sent = write(fd, i_payload,
-				(2 * sizeof(unsigned long)) + size);
-
-				if (bytes_sent <= 0) {
-					printf("\r\n Error sending data");
-					printf(" .. \r\n");
+				if (r_payload->data[i] != 0xA5) {
+					printf(" \r\n Data corruption");
+					printf(" at index %d \r\n", i);
+					err_cnt++;
 					break;
 				}
-				expect_rnum++;
-				printf("echo test: sent : %d\n", bytes_sent);
-
-				r_payload->num = 0;
-				bytes_rcvd = read(fd, r_payload,
-						(2 * sizeof(unsigned long)) + PAYLOAD_MAX_SIZE);
-				while (bytes_rcvd <= 0) {
-					usleep(10000);
-					bytes_rcvd = read(fd, r_payload,
-						(2 * sizeof(unsigned long)) + PAYLOAD_MAX_SIZE);
-				}
-				printf(" received payload number ");
-				printf("%d of size %d \r\n", r_payload->num, bytes_rcvd);
-
-				/* Validate data buffer integrity. */
-				for (i = 0; i < r_payload->size; i++) {
-
-					if (r_payload->data[i] != 0xA5) {
-						printf(" \r\n Data corruption");
-						printf(" at index %d \r\n", i);
-						err_cnt++;
-						break;
-					}
-				}
-				bytes_rcvd = read(fd, r_payload,
-				(2 * sizeof(unsigned long)) + PAYLOAD_MAX_SIZE);
-
 			}
+			bytes_rcvd = read(fd, r_payload,
+			(2 * sizeof(unsigned long)) + PAYLOAD_MAX_SIZE);
 
-			printf("\r\n **********************************");
-			printf("****\r\n");
-			printf("\r\n Test Results: Error count = %d\r\n",
-			err_cnt);
-			printf("\r\n **********************************");
-			printf("****\r\n");
-		} else if (cmd == 2) {
-			flag = 0;
-			close(fd);
-			printf("\r\n Quitting application .. \r\n");
-			printf(" Echo test end \r\n");
-		} else {
-			printf("\r\n invalid command! \r\n");
 		}
+		printf("\r\n **********************************");
+		printf("****\r\n");
+		printf("\r\n Echo Test Round %d Test Results: Error count = %d\r\n",
+		j, err_cnt);
+		printf("\r\n **********************************");
+		printf("****\r\n");
 	}
 
 	free(i_payload);
