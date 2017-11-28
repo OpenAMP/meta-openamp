@@ -163,11 +163,11 @@ int main(int argc, char *argv[])
 	}
 	printf("\r\n Matrix multiplication demo start \r\n");
 
-	printf("\r\n Open rpmsg dev! \r\n");
+	printf("\r\n Open rpmsg dev %s! \r\n", rpmsg_dev);
 
 	fd = open(rpmsg_dev, O_RDWR);
 	if (fd < 0) {
-		printf("Failed to open device %s.\n", rpmsg_dev);
+		perror("Failed to open rpmsg device.\n");
 		return -1;
 	}
 

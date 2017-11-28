@@ -69,12 +69,12 @@ int main(int argc, char *argv[])
 	}
 	printf("\r\n Echo test start \r\n");
 
-	printf("\r\n Open rpmsg dev! \r\n");
+	printf("\r\n Open rpmsg dev %s! \r\n", rpmsg_dev);
 
 	fd = open(rpmsg_dev, O_RDWR | O_NONBLOCK);
 
 	if (fd < 0) {
-		perror("Failed to open rpmsg file /dev/rpmsg0.");
+		perror("Failed to open rpmsg device.");
 		return -1;
 	}
 
