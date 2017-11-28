@@ -148,7 +148,7 @@ int main(int argc, char *argv[])
 	int opt;
 	char *rpmsg_dev="/dev/rpmsg0";
 
-	while ((opt = getopt(argc, argv, "dn:")) != -1) {
+	while ((opt = getopt(argc, argv, "d:n:")) != -1) {
 		switch (opt) {
 		case 'd':
 			rpmsg_dev = optarg;

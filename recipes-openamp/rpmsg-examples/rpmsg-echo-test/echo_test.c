@@ -54,7 +54,7 @@ int main(int argc, char *argv[])
 	char *rpmsg_dev="/dev/rpmsg0";
 	int ntimes = 1;
 
-	while ((opt = getopt(argc, argv, "dn:")) != -1) {
+	while ((opt = getopt(argc, argv, "d:n:")) != -1) {
 		switch (opt) {
 		case 'd':
 			rpmsg_dev = optarg;
