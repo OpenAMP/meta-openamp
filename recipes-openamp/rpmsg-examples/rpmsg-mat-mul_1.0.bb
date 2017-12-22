@@ -12,7 +12,7 @@ SRC_URI = "\
 
 S = "${WORKDIR}"
 
-DEPENDS = "rpmsg-user-module"
+DEPENDS = "kernel-module-rpmsg-user"
 
 FILES_${PN} = "\
 	/usr/bin/mat_mul_demo\

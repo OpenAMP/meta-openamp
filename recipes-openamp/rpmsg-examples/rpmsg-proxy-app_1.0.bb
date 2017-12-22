@@ -1,6 +1,5 @@
 SUMMARY = "RPMsg examples: Matrix Multiplication demo"
 
-
 LICENSE = "BSD"
 LIC_FILES_CHKSUM = "file://LICENSE;md5=b30cbe0b980e98bfd9759b1e6ba3d107"
 
@@ -13,7 +12,7 @@ SRC_URI = "\
 
 S = "${WORKDIR}"
 
-DEPENDS = "rpmsg-proxy-module"
+DEPENDS = "kernel-module-rpmsg-proxy"
 
 FILES_${PN} = "\
 	/usr/bin/proxy_app \

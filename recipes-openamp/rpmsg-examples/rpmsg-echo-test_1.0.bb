@@ -1,6 +1,5 @@
 SUMMARY = "RPMsg examples: echo test demo"
 
-
 LICENSE = "BSD"
 LIC_FILES_CHKSUM = "file://LICENSE;md5=b30cbe0b980e98bfd9759b1e6ba3d107"
 
@@ -12,7 +11,7 @@ SRC_URI = "\
 
 S = "${WORKDIR}"
 
-DEPENDS = "rpmsg-user-module"
+DEPENDS = "kernel-module-rpmsg-user"
 
 FILES_${PN} = "\
 	/usr/bin/echo_test\
