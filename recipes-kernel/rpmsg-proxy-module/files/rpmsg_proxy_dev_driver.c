@@ -117,7 +117,7 @@ static int rpmsg_dev_open(struct inode *inode, struct file *filp)
 		return -ENODEV;
 	}
 
-	if (rpmsg_sendto(rpdev->ept,
+	if (rpmsg_sendto(local->ept,
 			RPMG_INIT_MSG,
 			sizeof(RPMG_INIT_MSG),
 			rpdev->dst)) {
