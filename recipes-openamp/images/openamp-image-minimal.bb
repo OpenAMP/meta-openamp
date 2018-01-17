@@ -7,7 +7,6 @@ inherit core-image
 
 IMAGE_INSTALL += " \
     packagegroup-core-boot \
-    ${ROOTFS_PKGMANAGE_BOOTSTRAP} \
     ${CORE_IMAGE_EXTRA_INSTALL} \
     kernel-module-uio-pdrv-genirq \
     kernel-module-remoteproc \
