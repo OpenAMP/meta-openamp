@@ -245,7 +245,7 @@ void display_help_msg(void)
 	printf("\r\nLinux proxy application.\r\n");
 	printf("-v	 Displays proxy application version.\n");
 	printf("-f	 Accepts path of firmware to load on remote core.\n");
-	printf("-r       Which core 0|1\n");
+	printf("-r       Which remoteproc instance\n");
 	printf("-h	 Displays this help message.\n");
 }
 
