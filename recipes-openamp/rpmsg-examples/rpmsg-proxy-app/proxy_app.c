@@ -9,9 +9,11 @@
 #include <unistd.h>
 #include <errno.h>
 #include "proxy_app.h"
+#include <linux/rpmsg.h>
 
 #define RPC_BUFF_SIZE 512
 #define RPC_CHANNEL_READY_TO_CLOSE "rpc_channel_ready_to_close"
+#define PROXY_ENDPOINT 127
 
 struct _proxy_data {
 	int active;
@@ -207,9 +209,10 @@ int file_write(char *path, char *str)
 /* Stop remote CPU and Unload drivers */
 void stop_remote(void)
 {
+	system("modprobe -r rpmsg_char");
 	system("modprobe -r rpmsg_proxy_dev_driver");
-	sprintf(sbuf, 
-		"/sys/class/remoteproc/remoteproc%u/state", 
+	sprintf(sbuf,
+		"/sys/class/remoteproc/remoteproc%u/state",
 		r5_id);
 	(void)file_write(sbuf, "stop");
 }
@@ -217,6 +220,80 @@ void stop_remote(void)
 void exit_action_handler(int signum)
 {
 	proxy->active = 0;
+}
+
+int rpmsg_create_ept(int rpfd, struct rpmsg_endpoint_info *eptinfo)
+{
+	int ret;
+
+	ret = ioctl(rpfd, RPMSG_CREATE_EPT_IOCTL, eptinfo);
+	if (ret)
+		perror("Failed to create endpoint.\n");
+	return ret;
+}
+
+char *get_rpmsg_ept_dev_name(char *rpmsg_char_name, char *ept_name,
+			     char *ept_dev_name)
+{
+	char sys_rpmsg_ept_name_path[64];
+	char svc_name[64];
+	char *sys_rpmsg_path = "/sys/class/rpmsg";
+	FILE *fp;
+	int i;
+	int ept_name_len;
+
+	for (i = 0; i < 128; i++) {
+		sprintf(sys_rpmsg_ept_name_path, "%s/%s/rpmsg%d/name",
+			sys_rpmsg_path, rpmsg_char_name, i);
+		printf("checking %s\n", sys_rpmsg_ept_name_path);
+		fp = fopen(sys_rpmsg_ept_name_path, "r");
+		if (!fp) {
+			printf("failed to open %s\n", sys_rpmsg_ept_name_path);
+			break;
+		}
+		fgets(svc_name, sizeof(svc_name), fp);
+		fclose(fp);
+		printf("svc_name: %s.\n",svc_name);
+		ept_name_len = strlen(ept_name);
+		if (ept_name_len > sizeof(svc_name))
+			ept_name_len = sizeof(svc_name);
+		if (!strncmp(svc_name, ept_name, ept_name_len)) {
+			sprintf(ept_dev_name, "rpmsg%d", i);
+			return ept_dev_name;
+		}
+	}
+
+	printf("Not able to RPMsg endpoint file for %s:%s.\n",
+	       rpmsg_char_name, ept_name);
+	return NULL;
+}
+
+int rpmsg_create_ept_dev(int rpfd, struct rpmsg_endpoint_info *eptinfo)
+{
+	char ept_dev_name[16];
+	char ept_dev_path[32];
+	char *rpmsg_char_name;
+	int fd, ret;
+
+	ret = rpmsg_create_ept(rpfd, eptinfo);
+	if (ret) {
+		printf("failed to create RPMsg endpoint.\n");
+		return ret;
+	}
+
+	rpmsg_char_name = "rpmsg_ctrl0";
+	if (!get_rpmsg_ept_dev_name(rpmsg_char_name, eptinfo->name,
+				   ept_dev_name)) {
+		return -1;
+	}
+	sprintf(ept_dev_path, "/dev/%s", ept_dev_name);
+	printf("opening %s.\n", ept_dev_path);
+	fd = open(ept_dev_path, O_RDWR | O_NONBLOCK);
+	if (fd < 0) {
+		perror("Failed to open rpmsg endpoint device.");
+		return -1;
+	}
+	return fd;
 }
 
 void kill_action_handler(int signum)
@@ -244,6 +321,7 @@ void display_help_msg(void)
 {
 	printf("\r\nLinux proxy application.\r\n");
 	printf("-v	 Displays proxy application version.\n");
+	printf("-c	 Whether to use RPMsg char driver.\n");
 	printf("-f	 Accepts path of firmware to load on remote core.\n");
 	printf("-r       Which remoteproc instance\n");
 	printf("-h	 Displays this help message.\n");
@@ -254,11 +332,14 @@ int main(int argc, char *argv[])
 {
 	struct sigaction exit_action;
 	struct sigaction kill_action;
-	unsigned int bytes_rcvd;
+	int bytes_rcvd;
 	int i = 0;
 	int opt = 0;
 	int ret = 0;
 	char *user_fw_path = 0;
+	int use_rpmsg_char = 0;
+	int rpmsg_char_fd = -1;
+	int defaultept_fd = -1;
 
 	/* Initialize signalling infrastructure */
 	memset(&exit_action, 0, sizeof(struct sigaction));
@@ -270,8 +351,11 @@ int main(int argc, char *argv[])
 	sigaction(SIGKILL, &kill_action, NULL);
 	sigaction(SIGHUP, &kill_action, NULL);
 
-	while ((opt = getopt(argc, argv, "vhf:r:")) != -1) {
+	while ((opt = getopt(argc, argv, "vchf:r:")) != -1) {
 		switch (opt) {
+		case 'c':
+			use_rpmsg_char = 1;
+			break;
 		case 'f':
 			user_fw_path = optarg;
 			break;
@@ -317,10 +401,6 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
-	/* Create rpmsg proxy device */
-	printf("\r\nMaster>Create rpmsg proxy device\r\n");
-	system("modprobe rpmsg_proxy_dev_driver");
-
 	/* Allocate memory for proxy data structure */
 	proxy = malloc(sizeof(struct _proxy_data));
 	if (proxy == 0) {
@@ -328,19 +408,61 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 	proxy->active = 1;
+	if (use_rpmsg_char) {
+		struct rpmsg_endpoint_info eptinfo;
+		char *rpmsg_char_devname = "/dev/rpmsg_ctrl0";
+		int fd;
 
-	/* Open proxy rpmsg device */
-	printf("\r\nMaster>Opening rpmsg proxy device\r\n");
-	i = 0;
-	do {
-		proxy->rpmsg_proxy_fd = open("/dev/rpmsg_proxy0", O_RDWR);
-		sleep(1);
-	} while (proxy->rpmsg_proxy_fd < 0 && (i++ < 2));
+		printf("\r\nMaster>probe rpmsg_char\r\n");
+		system("modprobe rpmsg_char");
+		fd = open(rpmsg_char_devname, O_RDWR | O_NONBLOCK);
+		if (fd < 0) {
+			perror("Failed to open rpmsg char device.");
+			return -1;
+		}
+		rpmsg_char_fd = fd;
+		/* Create proxy endpoint */
+		strcpy(eptinfo.name, "rpmsg-proxy");
+		eptinfo.src = PROXY_ENDPOINT;
+		eptinfo.dst = PROXY_ENDPOINT;
+		fd = rpmsg_create_ept_dev(rpmsg_char_fd, &eptinfo);
+		if (fd < 0) {
+			printf("failed to create RPMsg proxy endpoint.\n");
+			ret = fd;
+			goto error0;
+		}
+		proxy->rpmsg_proxy_fd = fd;
+		/* create default endpoint */
+		strcpy(eptinfo.name, "rpmsg-openamp-demo-channel");
+		eptinfo.src = 0;
+		eptinfo.dst = 0xFFFFFFFF;
+		fd = rpmsg_create_ept_dev(rpmsg_char_fd, &eptinfo);
+		if (fd < 0) {
+			printf("failed to create RPMsg default endpoint.\n");
+			ret = fd;
+			close(proxy->rpmsg_proxy_fd);
+			goto error0;
+		}
+		defaultept_fd = fd;
+		ret = 0;
+	} else {
+		/* Create rpmsg proxy device */
+		printf("\r\nMaster>Create rpmsg proxy device\r\n");
+		system("modprobe rpmsg_proxy_dev_driver");
 
-	if (proxy->rpmsg_proxy_fd < 0) {
-		printf("\r\nMaster>Failed to open rpmsg proxy driver device file.\r\n");
-		ret = -1;
-		goto error0;
+		/* Open proxy rpmsg device */
+		printf("\r\nMaster>Opening rpmsg proxy device\r\n");
+		i = 0;
+		do {
+			proxy->rpmsg_proxy_fd = open("/dev/rpmsg_proxy0", O_RDWR);
+			sleep(1);
+		} while (proxy->rpmsg_proxy_fd < 0 && (i++ < 2));
+
+		if (proxy->rpmsg_proxy_fd < 0) {
+			printf("\r\nMaster>Failed to open rpmsg proxy driver device file.\r\n");
+			ret = -1;
+			goto error0;
+		}
 	}
 
 	/* Allocate memory for rpc payloads */
@@ -387,6 +509,10 @@ int main(int argc, char *argv[])
 	free(proxy->rpc_response);
 
 error0:
+	if (defaultept_fd >= 0)
+		close(defaultept_fd);
+	if (rpmsg_char_fd >= 0)
+		close(rpmsg_char_fd);
 	free(proxy);
 
 	stop_remote();
