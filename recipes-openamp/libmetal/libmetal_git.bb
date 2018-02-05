@@ -1,5 +1,5 @@
 SRCBRANCH ?= "master"
-SRCREV ?= "93c396de7ddcf446a0d6b247004bba8a01a335ee"
+SRCREV ?= "18048c4144f276cda793c125399057a6b5773edb"
 PV = "${SRCBRANCH}+git${SRCPV}"
 
 include libmetal.inc
