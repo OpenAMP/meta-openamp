@@ -1,7 +1,7 @@
-From bcd6c357d854ed74e68e837f5ae8bfad9f03102b Mon Sep 17 00:00:00 2001
+From ba7592123dd984718567c3615f698c03b948caf1 Mon Sep 17 00:00:00 2001
 From: Wendy Liang <jliang@xilinx.com>
 Date: Wed, 3 Jan 2018 16:04:01 -0800
-Subject: [PATCH] rpmsg: virtio rpmsg: Add RPMsg char driver support
+Subject: [LINUX PATCH] rpmsg: virtio rpmsg: Add RPMsg char driver support
 
 virtio rpmsg was not implemented to use RPMsg char driver.
 Each virtio ns announcement will create a new RPMsg device which
@@ -24,18 +24,9 @@ Here is the change from this patch:
 
 Signed-off-by: Wendy Liang <jliang@xilinx.com>
 ---
-We have different userspace applications to use RPMsg differently,
-what we need is a RPMsg char driver which can supports multiple
-endpoints per remote device.
-The virtio rpmsg driver at the moment doesn't support the RPMsg
-char driver.
-Please advise if this is patch is the right direction. If not,
-any suggestions? Thanks
----
----
  drivers/rpmsg/Kconfig            |   8 +
- drivers/rpmsg/virtio_rpmsg_bus.c | 364 ++++++++++++++++++++++++++++++++++++++-
- 2 files changed, 365 insertions(+), 7 deletions(-)
+ drivers/rpmsg/virtio_rpmsg_bus.c | 350 ++++++++++++++++++++++++++++++++++++++-
+ 2 files changed, 351 insertions(+), 7 deletions(-)
 
 diff --git a/drivers/rpmsg/Kconfig b/drivers/rpmsg/Kconfig
 index 0fe6eac..104060c 100644
@@ -55,7 +46,7 @@ index 0fe6eac..104060c 100644
 +
  endmenu
 diff --git a/drivers/rpmsg/virtio_rpmsg_bus.c b/drivers/rpmsg/virtio_rpmsg_bus.c
-index 82b8300..6e30a3cc 100644
+index 82b8300..f1f9000 100644
 --- a/drivers/rpmsg/virtio_rpmsg_bus.c
 +++ b/drivers/rpmsg/virtio_rpmsg_bus.c
 @@ -56,6 +56,7 @@
@@ -113,15 +104,16 @@ index 82b8300..6e30a3cc 100644
  /*
   * We're allocating buffers of 512 bytes each for communications. The
   * number of buffers will be computed from the number of buffers supported
-@@ -216,6 +250,199 @@ rpmsg_sg_init(struct scatterlist *sg, void *cpu_addr, unsigned int len)
+@@ -216,6 +250,180 @@ rpmsg_sg_init(struct scatterlist *sg, void *cpu_addr, unsigned int len)
  	}
  }
  
 +#ifdef CONFIG_RPMSG_VIRTIO_CHAR
 +/**
-+ * virtio_rpmsg_find_rsvc_by_name - find the announced remote service
++ * virtio_rpmsg_find_rsv - find the announced remote service
 + * @vrp: virtio remote proc information
 + * @name: remote service name
++ * @addr: remote service address
 + *
 + * The caller is supposed to have mutex lock before calling this function
 + *
@@ -129,23 +121,26 @@ index 82b8300..6e30a3cc 100644
 + * the remote service pointer.
 + */
 +static struct virtio_rpmsg_rsvc *
-+virtio_rpmsg_find_rsvc_by_name(struct virtproc_info *vrp, char *name)
++virtio_rpmsg_find_rsvc(struct virtproc_info *vrp, char *name, u32 addr)
 +{
 +	struct virtio_rpmsg_rsvc *rsvc;
 +
 +	list_for_each_entry(rsvc, &vrp->rsvcs, node) {
-+		if (!strncmp(rsvc->name, name, RPMSG_NAME_SIZE))
-+			/* remote service has found */
-+			return rsvc;
++		if (!strncmp(rsvc->name, name, RPMSG_NAME_SIZE)) {
++			if (addr == RPMSG_ADDR_ANY || addr == rsvc->addr)
++				/* remote service has found */
++				return rsvc;
++		}
 +	}
 +
 +	return NULL;
 +}
 +
 +/**
-+ * virtio_rpmsg_create_rsvc_by_name - create remote service
++ * virtio_rpmsg_create_rsvc - create remote service
 + * @vrp: virtio remote proc information
 + * @name: remote service name
++ * @addr: remote service address
 + *
 + * The caller is supposed to have mutex lock before calling this function
 + *
@@ -153,37 +148,42 @@ index 82b8300..6e30a3cc 100644
 + * the remote service pointer.
 + */
 +static struct virtio_rpmsg_rsvc *
-+virtio_rpmsg_create_rsvc_by_name(struct virtproc_info *vrp, char *name)
++virtio_rpmsg_create_rsvc(struct virtproc_info *vrp, char *name, u32 addr)
 +{
 +	struct virtio_rpmsg_rsvc *rsvc;
++	struct virtio_device *vdev = vrp->vdev;
 +
-+	rsvc = virtio_rpmsg_find_rsvc_by_name(vrp, name);
++	rsvc = virtio_rpmsg_find_rsvc(vrp, name, addr);
 +	if (rsvc)
 +		return rsvc;
 +	rsvc = kzalloc(sizeof(*rsvc), GFP_KERNEL);
 +	if (!rsvc)
 +		return NULL;
++	rsvc->addr = addr;
 +	strncpy(rsvc->name, name, RPMSG_NAME_SIZE);
 +	list_add_tail(&rsvc->node, &vrp->rsvcs);
++	dev_info(&vdev->dev, "service %s, %d is created.\n",
++		 name, rsvc->addr);
 +	return rsvc;
 +}
 +
 +/**
-+ * virtio_rpmsg_remove_rsvc_by_name - remove remote service
++ * virtio_rpmsg_remove_rsvc - remove remote service
 + * @vrp: virtio remote proc information
 + * @name: remote service name
++ * @addr: service address
 + *
 + */
 +static void
-+virtio_rpmsg_remove_rsvc_by_name(struct virtproc_info *vrp, char *name)
++virtio_rpmsg_remove_rsvc(struct virtproc_info *vrp, char *name, u32 addr)
 +{
 +	struct virtio_rpmsg_rsvc *rsvc;
 +	struct rpmsg_endpoint *ept;
 +	struct virtio_rpmsg_ept *vept;
 +
-+	mutex_lock(&vrp->endpoints_lock);
 +	list_for_each_entry(rsvc, &vrp->rsvcs, node) {
-+		if (!strncmp(rsvc->name, name, RPMSG_NAME_SIZE)) {
++		if (!strncmp(rsvc->name, name, RPMSG_NAME_SIZE) &&
++		    addr == rsvc->addr) {
 +			/* remote service has found, no need to
 +			 * create
 +			 */
@@ -197,34 +197,6 @@ index 82b8300..6e30a3cc 100644
 +			break;
 +		}
 +	}
-+	mutex_unlock(&vrp->endpoints_lock);
-+}
-+
-+/**
-+ * virtio_rpmsg_create_rsvc - create remote service with channel information
-+ * @vrp: virtio remote proc information
-+ * @chinfo: channel information
-+ *
-+ * return remote service pointer if it is successfully created; otherwise,
-+ * return NULL.
-+ */
-+static struct virtio_rpmsg_rsvc *
-+virtio_rpmsg_create_rsvc(struct virtproc_info *vrp,
-+			 struct rpmsg_channel_info *chinfo)
-+{
-+	struct virtio_rpmsg_rsvc *rsvc;
-+
-+	mutex_lock(&vrp->endpoints_lock);
-+	rsvc = virtio_rpmsg_create_rsvc_by_name(vrp, chinfo->name);
-+	if (rsvc) {
-+		struct virtio_device *vdev = vrp->vdev;
-+
-+		rsvc->addr = chinfo->dst;
-+		dev_info(&vdev->dev, "Remote has announced service %s, %d.\n",
-+			 chinfo->name, rsvc->addr);
-+	}
-+	mutex_unlock(&vrp->endpoints_lock);
-+	return rsvc;
 +}
 +
 +/**
@@ -313,7 +285,7 @@ index 82b8300..6e30a3cc 100644
  /**
   * __ept_release() - deallocate an rpmsg endpoint
   * @kref: the ept's reference count
-@@ -229,26 +456,53 @@ static void __ept_release(struct kref *kref)
+@@ -229,26 +437,53 @@ static void __ept_release(struct kref *kref)
  {
  	struct rpmsg_endpoint *ept = container_of(kref, struct rpmsg_endpoint,
  						  refcount);
@@ -368,7 +340,7 @@ index 82b8300..6e30a3cc 100644
  
  	kref_init(&ept->refcount);
  	mutex_init(&ept->cb_lock);
-@@ -259,7 +513,7 @@ static struct rpmsg_endpoint *__rpmsg_create_ept(struct virtproc_info *vrp,
+@@ -259,7 +494,7 @@ static struct rpmsg_endpoint *__rpmsg_create_ept(struct virtproc_info *vrp,
  	ept->ops = &virtio_endpoint_ops;
  
  	/* do we need to allocate a local address ? */
@@ -377,27 +349,28 @@ index 82b8300..6e30a3cc 100644
  		id_min = RPMSG_RESERVED_ADDRESSES;
  		id_max = 0;
  	} else {
-@@ -277,6 +531,19 @@ static struct rpmsg_endpoint *__rpmsg_create_ept(struct virtproc_info *vrp,
+@@ -277,6 +512,20 @@ static struct rpmsg_endpoint *__rpmsg_create_ept(struct virtproc_info *vrp,
  	}
  	ept->addr = id;
  
 +#ifdef CONFIG_RPMSG_VIRTIO_CHAR
 +	if (ept->addr != RPMSG_NS_ADDR) {
-+		rsvc = virtio_rpmsg_create_rsvc_by_name(vrp, ch->name);
++		rsvc = virtio_rpmsg_create_rsvc(vrp, ch->name, ch->dst);
 +		if (!rsvc)
 +			goto free_ept;
 +		vept->rsvc = rsvc;
 +		rsvc->ept = ept;
++		if (ch->dst == RPMSG_ADDR_ANY)
++			(void)virtio_rpmsg_announce_ept_create(ept);
 +		dev_info(&vrp->vdev->dev, "RPMsg ept created, %s:%d,%d.\n",
 +			 ch->name, ept->addr, rsvc->addr);
-+		(void)virtio_rpmsg_announce_ept_create(ept);
 +	}
 +#endif
 +
  	mutex_unlock(&vrp->endpoints_lock);
  
  	return ept;
-@@ -294,7 +561,7 @@ static struct rpmsg_endpoint *virtio_rpmsg_create_ept(struct rpmsg_device *rpdev
+@@ -294,7 +543,7 @@ static struct rpmsg_endpoint *virtio_rpmsg_create_ept(struct rpmsg_device *rpdev
  {
  	struct virtio_rpmsg_channel *vch = to_virtio_rpmsg_channel(rpdev);
  
@@ -406,7 +379,7 @@ index 82b8300..6e30a3cc 100644
  }
  
  /**
-@@ -392,6 +659,7 @@ static void virtio_rpmsg_release_device(struct device *dev)
+@@ -392,6 +641,7 @@ static void virtio_rpmsg_release_device(struct device *dev)
  	kfree(vch);
  }
  
@@ -414,7 +387,7 @@ index 82b8300..6e30a3cc 100644
  /*
   * create an rpmsg channel using its name and address info.
   * this function will be used to create both static and dynamic
-@@ -444,6 +712,7 @@ static struct rpmsg_device *rpmsg_create_channel(struct virtproc_info *vrp,
+@@ -444,6 +694,7 @@ static struct rpmsg_device *rpmsg_create_channel(struct virtproc_info *vrp,
  
  	return rpdev;
  }
@@ -422,7 +395,7 @@ index 82b8300..6e30a3cc 100644
  
  /* super simple buffer "allocator" that is just enough for now */
  static void *get_a_tx_buf(struct virtproc_info *vrp)
-@@ -660,8 +929,21 @@ static int rpmsg_send_offchannel_raw(struct rpmsg_device *rpdev,
+@@ -660,8 +911,21 @@ static int rpmsg_send_offchannel_raw(struct rpmsg_device *rpdev,
  static int virtio_rpmsg_send(struct rpmsg_endpoint *ept, void *data, int len)
  {
  	struct rpmsg_device *rpdev = ept->rpdev;
@@ -445,7 +418,7 @@ index 82b8300..6e30a3cc 100644
  	return rpmsg_send_offchannel_raw(rpdev, src, dst, data, len, true);
  }
  
-@@ -685,7 +967,16 @@ static int virtio_rpmsg_send_offchannel(struct rpmsg_endpoint *ept, u32 src,
+@@ -685,7 +949,16 @@ static int virtio_rpmsg_send_offchannel(struct rpmsg_endpoint *ept, u32 src,
  static int virtio_rpmsg_trysend(struct rpmsg_endpoint *ept, void *data, int len)
  {
  	struct rpmsg_device *rpdev = ept->rpdev;
@@ -463,7 +436,7 @@ index 82b8300..6e30a3cc 100644
  
  	return rpmsg_send_offchannel_raw(rpdev, src, dst, data, len, false);
  }
-@@ -824,11 +1115,13 @@ static int rpmsg_ns_cb(struct rpmsg_device *rpdev, void *data, int len,
+@@ -824,11 +1097,13 @@ static int rpmsg_ns_cb(struct rpmsg_device *rpdev, void *data, int len,
  		       void *priv, u32 src)
  {
  	struct rpmsg_ns_msg *msg = data;
@@ -478,12 +451,14 @@ index 82b8300..6e30a3cc 100644
  
  #if defined(CONFIG_DYNAMIC_DEBUG)
  	dynamic_hex_dump("NS announcement: ", DUMP_PREFIX_NONE, 16, 1,
-@@ -863,13 +1156,25 @@ static int rpmsg_ns_cb(struct rpmsg_device *rpdev, void *data, int len,
+@@ -863,13 +1138,29 @@ static int rpmsg_ns_cb(struct rpmsg_device *rpdev, void *data, int len,
  	chinfo.dst = msg->addr;
  
  	if (msg->flags & RPMSG_NS_DESTROY) {
 +#ifdef CONFIG_RPMSG_VIRTIO_CHAR
-+		virtio_rpmsg_remove_rsvc_by_name(vrp, chinfo.name);
++		mutex_lock(&vrp->endpoints_lock);
++		virtio_rpmsg_remove_rsvc(vrp, chinfo.name, chinfo.dst);
++		mutex_unlock(&vrp->endpoints_lock);
 +#else
  		ret = rpmsg_unregister_device(&vrp->vdev->dev, &chinfo);
  		if (ret)
@@ -493,7 +468,9 @@ index 82b8300..6e30a3cc 100644
 +#ifdef CONFIG_RPMSG_VIRTIO_CHAR
 +		struct virtio_rpmsg_rsvc *rsvc;
 +
-+		rsvc = virtio_rpmsg_create_rsvc(vrp, &chinfo);
++		mutex_lock(&vrp->endpoints_lock);
++		rsvc = virtio_rpmsg_create_rsvc(vrp, chinfo.name, chinfo.dst);
++		mutex_unlock(&vrp->endpoints_lock);
 +		if (!rsvc)
 +			dev_err(dev, "virtio_rpmsg_create_rsvc failed\n");
 +#else
@@ -504,7 +481,7 @@ index 82b8300..6e30a3cc 100644
  	}
  
  	return 0;
-@@ -885,6 +1190,10 @@ static int rpmsg_probe(struct virtio_device *vdev)
+@@ -885,6 +1176,10 @@ static int rpmsg_probe(struct virtio_device *vdev)
  	int err = 0, i;
  	size_t total_buf_space;
  	bool notify;
@@ -515,7 +492,7 @@ index 82b8300..6e30a3cc 100644
  
  	vrp = kzalloc(sizeof(*vrp), GFP_KERNEL);
  	if (!vrp)
-@@ -956,9 +1265,14 @@ static int rpmsg_probe(struct virtio_device *vdev)
+@@ -956,9 +1251,14 @@ static int rpmsg_probe(struct virtio_device *vdev)
  
  	/* if supported by the remote processor, enable the name service */
  	if (virtio_has_feature(vdev, VIRTIO_RPMSG_F_NS)) {
@@ -531,7 +508,7 @@ index 82b8300..6e30a3cc 100644
  		if (!vrp->ns_ept) {
  			dev_err(&vdev->dev, "failed to create the ns ept\n");
  			err = -ENOMEM;
-@@ -966,6 +1280,32 @@ static int rpmsg_probe(struct virtio_device *vdev)
+@@ -966,6 +1266,32 @@ static int rpmsg_probe(struct virtio_device *vdev)
  		}
  	}
  
@@ -564,7 +541,7 @@ index 82b8300..6e30a3cc 100644
  	/*
  	 * Prepare to kick but don't notify yet - we can't do this before
  	 * device is ready.
-@@ -1009,6 +1349,9 @@ static void rpmsg_remove(struct virtio_device *vdev)
+@@ -1009,6 +1335,9 @@ static void rpmsg_remove(struct virtio_device *vdev)
  	struct virtproc_info *vrp = vdev->priv;
  	size_t total_buf_space = vrp->num_bufs * vrp->buf_size;
  	int ret;
@@ -574,7 +551,7 @@ index 82b8300..6e30a3cc 100644
  
  	vdev->config->reset(vdev);
  
-@@ -1021,6 +1364,13 @@ static void rpmsg_remove(struct virtio_device *vdev)
+@@ -1021,6 +1350,13 @@ static void rpmsg_remove(struct virtio_device *vdev)
  
  	idr_destroy(&vrp->endpoints);
  
