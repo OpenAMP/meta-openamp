@@ -3,7 +3,7 @@
 		#address-cells = <2>;
 		#size-cells = <2>;
 		ranges;
-		rproc_0_reserved: rproc@3ed000000 {
+		rproc_0_reserved: rproc@3ed00000 {
 			no-map;
 			reg = <0x0 0x3ed00000 0x0 0x1000000>;
 		};
