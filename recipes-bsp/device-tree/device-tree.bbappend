@@ -1,10 +1,10 @@
 FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
 
 RPU_MODE_zynqmp ?= "split"
-OPENAMP_DTSI_zynqmp ?= "openamp-overlay-${RPU_MODE}.dtsi"
+OPENAMP_DTSI_zynqmp ?= "openamp-${RPU_MODE}.dtsi"
 
 SRC_URI_append_zynqmp ="\
-    file://zynqmp/openamp-overlay-${RPU_MODE}.dtsi \
+    file://zynqmp/openamp-${RPU_MODE}.dtsi \
 "
 DTS_DIR="${DTS_FILES_PATH}"
 
