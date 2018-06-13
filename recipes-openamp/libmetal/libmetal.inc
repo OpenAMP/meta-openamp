@@ -22,12 +22,12 @@ DEPENDS = "sysfsutils"
 
 PROVIDES = "libmetal"
 
-inherit pkgconfig cmake
+inherit pkgconfig cmake yocto-cmake-translation
 
 EXTRA_OECMAKE = " \
 	-DLIB_INSTALL_DIR=${libdir} \
 	-DLIBEXEC_INSTALL_DIR=${libexecdir} \
-	-DMACHINE=${SOC_FAMILY} \
+	-DMACHINE="${@get_cmake_machine(d.getVar('TARGET_OS'), d.getVar('TUNE_ARCH'), d.getVar('SOC_FAMILY'), d)}" \
 	"
 
 EXTRA_OECMAKE_append_zynqmp = "-DWITH_EXAMPLES=ON"
