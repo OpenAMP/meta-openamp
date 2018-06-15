@@ -39,17 +39,10 @@ FILES_${PN} = " \
 "
 
 FILES_${PN}-demos = " \
-    ${bindir}/*-openamp \
+    ${bindir}/*-shared \
 "
 do_install_append_zynqmp () {
 	# Only install echo test client, matrix multiplication client,
 	# and proxy app server for ZynqMP
-	mv ${D}/${bindir}/echo_test-shared \
-		${D}/${bindir}/echo_test-openamp
-	mv ${D}/${bindir}/matrix_multiply-shared \
-		${D}/${bindir}/mat_mul-openamp
-	mv ${D}/${bindir}/rpc_demod-shared \
-		${D}/${bindir}/proxy_app-openamp
-
-	rm -rf ${D}/${bindir}/*-static ${D}/${bindir}/*-shared
+	rm -rf ${D}/${bindir}/*-static
 }
