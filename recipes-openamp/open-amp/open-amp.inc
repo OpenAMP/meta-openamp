@@ -5,7 +5,7 @@ HOMEPAGE = "https://github.com/OpenAMP/open-amp/"
 SECTION = "libs"
 
 LICENSE = "BSD"
-LIC_FILES_CHKSUM = "file://LICENSE;md5=b30cbe0b980e98bfd9759b1e6ba3d107"
+LIC_FILES_CHKSUM = "file://LICENSE.md;md5=a8d8cf662ef6bf9936a1e1413585ecbf"
 
 REPO ?= "git://github.com/OpenAMP/open-amp.git;protocol=https"
 BRANCH ?= "master"
