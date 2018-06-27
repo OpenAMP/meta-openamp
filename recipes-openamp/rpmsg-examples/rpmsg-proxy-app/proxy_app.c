@@ -12,7 +12,6 @@
 #include <linux/rpmsg.h>
 
 #define RPC_BUFF_SIZE 512
-#define RPC_CHANNEL_READY_TO_CLOSE "rpc_channel_ready_to_close"
 #define PROXY_ENDPOINT 127
 
 struct _proxy_data {
@@ -96,6 +95,7 @@ int handle_read(struct _sys_rpc *rpc)
 			((bytes_read > 0) ? bytes_read : 0);
 
 	/* Transmit rpc response */
+	printf("%s: %d, %d\n", __func__, proxy->rpc_response->id, proxy->rpc_response->sys_call_args.int_field1);
 	bytes_written = write(proxy->rpmsg_proxy_fd, proxy->rpc_response,
 					payload_size);
 
@@ -128,10 +128,6 @@ int handle_rpc(struct _sys_rpc *rpc)
 {
 	int retval;
 	char *data = (char *)rpc;
-	if (!strcmp(data, RPC_CHANNEL_READY_TO_CLOSE)) {
-		proxy->active = 0;
-		return 0;
-	}
 
 	/* Handle RPC */
 	switch ((int)(rpc->id)) {
@@ -155,6 +151,12 @@ int handle_rpc(struct _sys_rpc *rpc)
 		retval = handle_write(rpc);
 		break;
 	}
+	case TERM_SYSCALL_ID:
+	{
+		proxy->active = 0;
+		retval = 0;
+		break;
+	}
 	default:
 	{
 		printf("\r\nMaster>Err:Invalid RPC sys call ID: %d:%d! \r\n", rpc->id,WRITE_SYSCALL_ID);
@@ -164,17 +166,6 @@ int handle_rpc(struct _sys_rpc *rpc)
 	}
 
 	return retval;
-}
-
-int terminate_rpc_app()
-{
-	//int bytes_written;
-	int msg = TERM_SYSCALL_ID;
-
-	printf ("Master> sending shutdown signal.\n");
-	return 0;
-	//bytes_written = write(proxy->rpmsg_proxy_fd, &msg, sizeof(int));
-	//return bytes_written;
 }
 
 /* write a string to an existing and writtable file */
@@ -194,7 +185,7 @@ int file_write(char *path, char *str)
 	if (bytes_written != str_sz) {
 	        if (bytes_written == -1) {
 			perror("Error");
-		} 
+		}
 		close(fd);
 		return -1;
 	}
@@ -300,11 +291,6 @@ void kill_action_handler(int signum)
 {
 	printf("\r\nMaster>RPC service killed !!\r\n");
 
-	/* Send shutdown signal to remote application */
-	terminate_rpc_app();
-
-	/* wait for a while to let the remote finish cleanup */
-	sleep(1);
 	/* Close proxy rpmsg device */
 	close(proxy->rpmsg_proxy_fd);
 
@@ -386,16 +372,16 @@ int main(int argc, char *argv[])
 	}
 
 	/* Write firmware name to remoteproc sysfs interface */
-	sprintf(sbuf, 
-		"/sys/class/remoteproc/remoteproc%u/firmware", 
+	sprintf(sbuf,
+		"/sys/class/remoteproc/remoteproc%u/firmware",
 		r5_id);
 	if (0 != file_write(sbuf, "image_rpc_demo")) {
 		return -1;
 	}
 
 	/* Tell remoteproc to load and start remote cpu */
-	sprintf(sbuf, 
-		"/sys/class/remoteproc/remoteproc%u/state", 
+	sprintf(sbuf,
+		"/sys/class/remoteproc/remoteproc%u/state",
 		r5_id);
 	if (0 != file_write(sbuf, "start")) {
 		return -1;
@@ -448,13 +434,13 @@ int main(int argc, char *argv[])
 	} else {
 		/* Create rpmsg proxy device */
 		printf("\r\nMaster>Create rpmsg proxy device\r\n");
-		system("modprobe rpmsg_proxy_dev_driver");
+		system("modprobe rpmsg_user_dev_driver");
 
 		/* Open proxy rpmsg device */
 		printf("\r\nMaster>Opening rpmsg proxy device\r\n");
 		i = 0;
 		do {
-			proxy->rpmsg_proxy_fd = open("/dev/rpmsg_proxy0", O_RDWR);
+			proxy->rpmsg_proxy_fd = open("/dev/rpmsg0", O_RDWR);
 			sleep(1);
 		} while (proxy->rpmsg_proxy_fd < 0 && (i++ < 2));
 
@@ -471,36 +457,26 @@ int main(int argc, char *argv[])
 
 	/* RPC service starts */
 	printf("\r\nMaster>RPC service started !!\r\n");
-	while (proxy->active) {
-		/* Block on read for rpc requests from remote context */
-		do {
-			bytes_rcvd = read(proxy->rpmsg_proxy_fd, proxy->rpc,
-					RPC_BUFF_SIZE);
-			if (!proxy->active)
-				break;
-		} while(bytes_rcvd <= 0);
-
-		/* User event, break! */
-		if (!proxy->active)
+	/* Block on read for rpc requests from remote context */
+	do {
+		bytes_rcvd = read(proxy->rpmsg_proxy_fd, proxy->rpc,
+				  RPC_BUFF_SIZE);
+		if (bytes_rcvd < 0 && bytes_rcvd != -EAGAIN)
 			break;
-
 		/* Handle rpc */
 		if (handle_rpc(proxy->rpc)) {
-			printf("\r\nMaster>Err:Handling remote procedure");
-			printf(" call!\r\n");
-			printf("\r\nrpc id %d\r\n", proxy->rpc->id);
-			printf("\r\nrpc int field1 %d\r\n",
+			printf("\nMaster>Err:Handling remote procedure call!\n");
+			printf("\nrpc id %d\n", proxy->rpc->id);
+			printf("\nrpc int field1 %d\n",
 				proxy->rpc->sys_call_args.int_field1);
-			printf("\r\nrpc int field2 %d\r\n",
+			printf("\nrpc int field2 %d\n",
 				proxy->rpc->sys_call_args.int_field2);
 			break;
 		}
-	}
+	} while(proxy->active);
 
 	printf("\r\nMaster>RPC service exiting !!\r\n");
 
-	/* Send shutdown signal to remote application */
-	terminate_rpc_app();
 	/* Close proxy rpmsg device */
 	close(proxy->rpmsg_proxy_fd);
 
