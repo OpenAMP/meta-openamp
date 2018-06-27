@@ -1,6 +1,6 @@
 SRCBRANCH ?= "master"
 SRCREV ?= "18048c4144f276cda793c125399057a6b5773edb"
-LIC_FILES_CHKSUM ?= "file://LICENSE.md;md5=395307789d21fd8945fc1c933cad18b5"
+LIC_FILES_CHKSUM ?= "file://LICENSE.md;md5=fe0b8a4beea8f0813b606d15a3df3d3c"
 PV = "${SRCBRANCH}+git${SRCPV}"
 
 include libmetal.inc
