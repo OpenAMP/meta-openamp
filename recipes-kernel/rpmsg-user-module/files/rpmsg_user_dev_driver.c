@@ -44,6 +44,7 @@
 struct _rpmsg_eptdev {
 	struct device dev;
 	struct cdev cdev;
+	bool is_ept_active;
 	wait_queue_head_t usr_wait_q;
 	struct rpmsg_device *rpdev;
 	struct rpmsg_channel_info chinfo;
@@ -141,7 +142,7 @@ static ssize_t rpmsg_dev_read(struct file *filp, char __user *ubuff,
 	skb = skb_dequeue(&local->queue);
 	if (!skb) {
 		dev_err(&local->dev, "Read failed, RPMsg queue is empty.\n");
-		return -EFAULT;
+		return -EAGAIN;
 	}
 
 	spin_unlock_irqrestore(&local->queue_lock, flags);
@@ -193,13 +194,15 @@ static int rpmsg_dev_release(struct inode *inode, struct file *p_file)
 		kfree_skb(skb);
 	}
 
-	dev_info(&rpdev->dev, "Sending shutdown message.\n");
-	if (rpmsg_send(eptdev->ept,
-			&msg,
-			sizeof(msg))) {
-		dev_err(&rpdev->dev,
-			"Failed to send shutdown message.\n");
-		return -EINVAL;
+	if (eptdev->is_ept_active) {
+		dev_info(&rpdev->dev, "Sending shutdown message.\n");
+		if (rpmsg_send(eptdev->ept,
+				&msg,
+				sizeof(msg))) {
+			dev_err(&rpdev->dev,
+				"Failed to send shutdown message.\n");
+			return -EINVAL;
+		}
 	}
 
 	put_device(&rpdev->dev);
@@ -307,6 +310,7 @@ static int rpmsg_user_dev_rpmsg_drv_probe(struct rpmsg_device *rpdev)
 
 	/* Set up the release function for cleanup */
 	dev->release = rpmsg_user_dev_release_device;
+	local->is_ept_active = 1;
 
 	ret = device_add(dev);
 	if (ret) {
@@ -336,6 +340,7 @@ static void rpmsg_user_dev_rpmsg_drv_remove(struct rpmsg_device *rpdev)
 
 	dev_info(&rpdev->dev, "Removing rpmsg user dev.\n");
 
+	local->is_ept_active = 0;
 	device_del(&local->dev);
 	put_device(&local->dev);
 }
