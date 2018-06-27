@@ -1,3 +1,5 @@
+#include <stdint.h>
+
 /* System call definitions */
 #define OPEN_SYSCALL_ID		1
 #define CLOSE_SYSCALL_ID	2
@@ -18,14 +20,14 @@ struct _rpc_data {
 };
 
 struct _sys_call_args {
-	int int_field1;
-	int int_field2;
-	unsigned int	data_len;
+	int32_t int_field1;
+	int32_t int_field2;
+	uint32_t data_len;
 	char data[0];
 };
 
 /* System call rpc data structure */
 struct _sys_rpc {
-	unsigned int	id;
+	uint32_t id;
 	struct _sys_call_args	sys_call_args;
 };
