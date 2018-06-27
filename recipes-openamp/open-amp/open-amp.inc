@@ -26,7 +26,8 @@ EXTRA_OECMAKE = " \
 	-DLIB_INSTALL_DIR=${libdir} \
 	-DLIBEXEC_INSTALL_DIR=${libexecdir} \
 	-DMACHINE=${SOC_FAMILY} \
-	-DWITH_PROXY=OFF \
+	-DWITH_PROXY=off \
+	-DWITH_PROXY_APPS=on \
 	"
 
 # OpenAMP apps not ready for Zynq
