@@ -22,8 +22,6 @@
 #include <string.h>
 #include <linux/rpmsg.h>
 
-/* Shutdown message ID */
-
 struct _payload {
 	unsigned long num;
 	unsigned long size;
