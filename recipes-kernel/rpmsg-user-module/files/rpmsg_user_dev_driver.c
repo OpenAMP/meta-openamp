@@ -34,12 +34,7 @@
 #define MAX_RPMSG_BUFF_SIZE		512
 #define RPMSG_KFIFO_SIZE		(MAX_RPMSG_BUFF_SIZE * 4)
 
-/* Shutdown message ID */
-#define SHUTDOWN_MSG			0xEF56A55A
-
 #define RPMSG_USER_DEV_MAX_MINORS 10
-
-#define RPMG_INIT_MSG "init_msg"
 
 struct _rpmsg_eptdev {
 	struct device dev;
@@ -75,16 +70,6 @@ static int rpmsg_dev_open(struct inode *inode, struct file *filp)
 	local->is_sk_queue_closed = false;
 	spin_unlock_irqrestore(&local->queue_lock, flags);
 
-	if (rpmsg_sendto(rpdev->ept,
-			RPMG_INIT_MSG,
-			sizeof(RPMG_INIT_MSG),
-			rpdev->dst)) {
-		dev_err(&rpdev->dev,
-			"Failed to send init_msg to target 0x%x.",
-			rpdev->dst);
-		return -ENODEV;
-	}
-	dev_info(&rpdev->dev, "Sent init_msg to target 0x%x.", rpdev->dst);
 	return 0;
 }
 
@@ -182,7 +167,6 @@ static int rpmsg_dev_release(struct inode *inode, struct file *p_file)
 	struct _rpmsg_eptdev *eptdev = cdev_to_eptdev(inode->i_cdev);
 	struct rpmsg_device *rpdev = eptdev->rpdev;
 	struct sk_buff *skb;
-	unsigned int msg = SHUTDOWN_MSG;
 
 	spin_lock(&eptdev->queue_lock);
 	eptdev->is_sk_queue_closed = true;
@@ -194,17 +178,7 @@ static int rpmsg_dev_release(struct inode *inode, struct file *p_file)
 		kfree_skb(skb);
 	}
 
-	if (eptdev->is_ept_active) {
-		dev_info(&rpdev->dev, "Sending shutdown message.\n");
-		if (rpmsg_send(eptdev->ept,
-				&msg,
-				sizeof(msg))) {
-			dev_err(&rpdev->dev,
-				"Failed to send shutdown message.\n");
-			return -EINVAL;
-		}
-	}
-
+	dev_dbg(&rpdev->dev, "%s\n", __func__);
 	put_device(&rpdev->dev);
 	return 0;
 }
