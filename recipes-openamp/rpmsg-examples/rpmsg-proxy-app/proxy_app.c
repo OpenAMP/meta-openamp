@@ -14,6 +14,9 @@
 #define RPC_BUFF_SIZE 512
 #define PROXY_ENDPOINT 127
 
+/* Initialization message ID */
+#define RPMG_INIT_MSG	"init_msg"
+
 struct _proxy_data {
 	int active;
 	int rpmsg_proxy_fd;
@@ -33,6 +36,7 @@ int handle_open(struct _sys_rpc *rpc)
 	ssize_t bytes_written;
 
 	/* Open remote fd */
+
 	fd = open(rpc->sys_call_args.data, rpc->sys_call_args.int_field1,
 			rpc->sys_call_args.int_field2);
 
@@ -457,6 +461,17 @@ int main(int argc, char *argv[])
 
 	/* RPC service starts */
 	printf("\r\nMaster>RPC service started !!\r\n");
+	/* Send init message to remote.
+	 * This is required otherwise, remote doesn't know the host
+	 * RPMsg endpoint
+	 */
+	ret = write(proxy->rpmsg_proxy_fd, RPMG_INIT_MSG,
+		    sizeof(RPMG_INIT_MSG));
+	if (ret < 0) {
+		printf("\r\nMaster>Failed to send init message.\r\n");
+		goto error0;
+	}
+
 	/* Block on read for rpc requests from remote context */
 	do {
 		bytes_rcvd = read(proxy->rpmsg_proxy_fd, proxy->rpc,
