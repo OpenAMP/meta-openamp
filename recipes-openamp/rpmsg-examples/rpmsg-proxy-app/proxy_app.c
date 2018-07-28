@@ -205,7 +205,7 @@ int file_write(char *path, char *str)
 void stop_remote(void)
 {
 	system("modprobe -r rpmsg_char");
-	system("modprobe -r rpmsg_proxy_dev_driver");
+	system("modprobe -r rpmsg_user_dev_driver");
 	sprintf(sbuf,
 		"/sys/class/remoteproc/remoteproc%u/state",
 		r5_id);
