@@ -168,6 +168,8 @@ int main(int argc, char *argv[])
 		printf("****\r\n");
 		for (i = 0, size = PAYLOAD_MIN_SIZE; i < NUM_PAYLOADS;
 		i++, size++) {
+			int k;
+
 			i_payload->num = i;
 			i_payload->size = size;
 
@@ -200,11 +202,11 @@ int main(int argc, char *argv[])
 			printf("%ld of size %d\r\n", r_payload->num, bytes_rcvd);
 
 			/* Validate data buffer integrity. */
-			for (i = 0; i < r_payload->size; i++) {
+			for (k = 0; k < r_payload->size; k++) {
 
-				if (r_payload->data[i] != 0xA5) {
+				if (r_payload->data[k] != 0xA5) {
 					printf(" \r\n Data corruption");
-					printf(" at index %d \r\n", i);
+					printf(" at index %d \r\n", k);
 					err_cnt++;
 					break;
 				}
