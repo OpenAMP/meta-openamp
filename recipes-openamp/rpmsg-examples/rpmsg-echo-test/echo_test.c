@@ -92,14 +92,12 @@ char *get_rpmsg_ept_dev_name(char *rpmsg_char_name, char *ept_name,
 
 int main(int argc, char *argv[])
 {
-	int flag = 1;
-	int cmd, ret, i, j;
+	int ret, i, j;
 	int size, bytes_rcvd, bytes_sent;
 	err_cnt = 0;
 	int opt;
 	char *rpmsg_dev="/dev/rpmsg0";
 	int ntimes = 1;
-	int uses_rpmsg_char = 0;
 	char *rpmsg_char_name;
 	struct rpmsg_endpoint_info eptinfo;
 
@@ -132,7 +130,6 @@ int main(int argc, char *argv[])
 		char ept_dev_name[16];
 		char ept_dev_path[32];
 
-		uses_rpmsg_char = 1;
 		strcpy(eptinfo.name, "rpmsg-openamp-demo-channel");
 		eptinfo.src = 0;
 		eptinfo.dst = 0xFFFFFFFF;
