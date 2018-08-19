@@ -58,8 +58,9 @@ static int rpmsg_create_ept(int rpfd, struct rpmsg_endpoint_info *eptinfo)
 	return ret;
 }
 
-static char *get_rpmsg_ept_dev_name(char *rpmsg_char_name, char *ept_name,
-			     char *ept_dev_name)
+static char *get_rpmsg_ept_dev_name(const char *rpmsg_char_name,
+				    const char *ept_name,
+				    char *ept_dev_name)
 {
 	char sys_rpmsg_ept_name_path[64];
 	char svc_name[64];
@@ -172,7 +173,6 @@ static int get_rpmsg_chrdev_fd(const char *rpmsg_dev_name,
 	fprintf(stderr, "No rpmsg char dev file is found\n");
 	return -EINVAL;
 }
-
 
 int main(int argc, char *argv[])
 {
