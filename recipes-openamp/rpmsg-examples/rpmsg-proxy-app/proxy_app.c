@@ -1,3 +1,5 @@
+#include <dirent.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -10,6 +12,8 @@
 #include <errno.h>
 #include "proxy_app.h"
 #include <linux/rpmsg.h>
+
+#define RPMSG_BUS_SYS "/sys/bus/rpmsg"
 
 #define RPC_BUFF_SIZE 512
 #define PROXY_ENDPOINT 127
@@ -163,7 +167,7 @@ int handle_rpc(struct _sys_rpc *rpc)
 	}
 	default:
 	{
-		printf("\r\nMaster>Err:Invalid RPC sys call ID: %d:%d! \r\n", rpc->id,WRITE_SYSCALL_ID);
+		printf("\r\nMaster>Err:Invalid RPC sys call ID: %d! \r\n", rpc->id);
 		retval = -1;
 		break;
 	}
@@ -205,7 +209,6 @@ int file_write(char *path, char *str)
 void stop_remote(void)
 {
 	system("modprobe -r rpmsg_char");
-	system("modprobe -r rpmsg_user_dev_driver");
 	sprintf(sbuf,
 		"/sys/class/remoteproc/remoteproc%u/state",
 		r5_id);
@@ -217,7 +220,7 @@ void exit_action_handler(int signum)
 	proxy->active = 0;
 }
 
-int rpmsg_create_ept(int rpfd, struct rpmsg_endpoint_info *eptinfo)
+static int rpmsg_create_ept(int rpfd, struct rpmsg_endpoint_info *eptinfo)
 {
 	int ret;
 
@@ -227,8 +230,9 @@ int rpmsg_create_ept(int rpfd, struct rpmsg_endpoint_info *eptinfo)
 	return ret;
 }
 
-char *get_rpmsg_ept_dev_name(char *rpmsg_char_name, char *ept_name,
-			     char *ept_dev_name)
+static char *get_rpmsg_ept_dev_name(const char *rpmsg_char_name,
+				    const char *ept_name,
+				    char *ept_dev_name)
 {
 	char sys_rpmsg_ept_name_path[64];
 	char svc_name[64];
@@ -263,7 +267,7 @@ char *get_rpmsg_ept_dev_name(char *rpmsg_char_name, char *ept_name,
 	return NULL;
 }
 
-int rpmsg_create_ept_dev(int rpfd, struct rpmsg_endpoint_info *eptinfo)
+static int rpmsg_create_ept_dev(int rpfd, struct rpmsg_endpoint_info *eptinfo)
 {
 	char ept_dev_name[16];
 	char ept_dev_path[32];
@@ -289,6 +293,109 @@ int rpmsg_create_ept_dev(int rpfd, struct rpmsg_endpoint_info *eptinfo)
 		return -1;
 	}
 	return fd;
+}
+
+static int bind_rpmsg_chrdev(const char *rpmsg_dev_name)
+{
+	char fpath[256];
+	char *rpmsg_chdrv = "rpmsg_chrdev";
+	int fd;
+	int ret;
+
+	/* rpmsg dev overrides path */
+	sprintf(fpath, "%s/devices/%s/driver_override",
+		RPMSG_BUS_SYS, rpmsg_dev_name);
+	fd = open(fpath, O_WRONLY);
+	if (fd < 0) {
+		fprintf(stderr, "Failed to open %s, %s\n",
+			fpath, strerror(errno));
+		return -EINVAL;
+	}
+	ret = write(fd, rpmsg_chdrv, strlen(rpmsg_chdrv) + 1);
+	if (ret < 0) {
+		fprintf(stderr, "Failed to write %s to %s, %s\n",
+			rpmsg_chdrv, fpath, strerror(errno));
+		return -EINVAL;
+	}
+	close(fd);
+
+	/* bind the rpmsg device to rpmsg char driver */
+	sprintf(fpath, "%s/drivers/%s/bind", RPMSG_BUS_SYS, rpmsg_chdrv);
+	fd = open(fpath, O_WRONLY);
+	if (fd < 0) {
+		fprintf(stderr, "Failed to open %s, %s\n",
+			fpath, strerror(errno));
+		return -EINVAL;
+	}
+	ret = write(fd, rpmsg_dev_name, strlen(rpmsg_dev_name) + 1);
+	if (ret < 0) {
+		fprintf(stderr, "Failed to write %s to %s, %s\n",
+			rpmsg_dev_name, fpath, strerror(errno));
+		return -EINVAL;
+	}
+	close(fd);
+	return 0;
+}
+
+static int get_rpmsg_chrdev_fd(const char *rpmsg_dev_name,
+			       char *rpmsg_ctrl_name)
+{
+	char dpath[256];
+	char fpath[256];
+	char *rpmsg_ctrl_prefix = "rpmsg_ctrl";
+	DIR *dir;
+	struct dirent *ent;
+	int fd;
+
+	sprintf(dpath, "%s/devices/%s/rpmsg", RPMSG_BUS_SYS, rpmsg_dev_name);
+	dir = opendir(dpath);
+	if (dir == NULL) {
+		fprintf(stderr, "Failed to open dir %s\n", dpath);
+		return -EINVAL;
+	}
+	while ((ent = readdir(dir)) != NULL) {
+		if (!strncmp(ent->d_name, rpmsg_ctrl_prefix,
+			    strlen(rpmsg_ctrl_prefix))) {
+			printf("Opening file %s.\n", ent->d_name);
+			sprintf(fpath, "/dev/%s", ent->d_name);
+			fd = open(fpath, O_RDWR | O_NONBLOCK);
+			if (fd < 0) {
+				fprintf(stderr,
+					"Failed to open rpmsg char dev %s,%s\n",
+					fpath, strerror(errno));
+				return fd;
+			}
+			sprintf(rpmsg_ctrl_name, "%s", ent->d_name);
+			return fd;
+		}
+	}
+
+	fprintf(stderr, "No rpmsg char dev file is found\n");
+	return -EINVAL;
+}
+
+static int get_rpmsg_dev_name(const char *rpmsg_svc_name, char *rpmsg_dev_name)
+{
+	char dpath[64];
+	DIR *dir;
+	struct dirent *ent;
+	int fd;
+
+	sprintf(dpath, "%s/devices", RPMSG_BUS_SYS);
+	dir = opendir(dpath);
+	if (dir == NULL) {
+		fprintf(stderr, "Failed to open dir %s\n", dpath);
+		return -EINVAL;
+	}
+	while ((ent = readdir(dir)) != NULL) {
+		if (strstr(ent->d_name, rpmsg_svc_name) != NULL) {
+			sprintf(rpmsg_dev_name, "%s", ent->d_name);
+			return 0;
+		}
+	}
+
+	fprintf(stderr, "No rpmsg dev file is found for %s.\n", rpmsg_svc_name);
+	return -EINVAL;
 }
 
 void kill_action_handler(int signum)
@@ -317,7 +424,6 @@ void display_help_msg(void)
 	printf("-h	 Displays this help message.\n");
 }
 
-
 int main(int argc, char *argv[])
 {
 	struct sigaction exit_action;
@@ -327,9 +433,14 @@ int main(int argc, char *argv[])
 	int opt = 0;
 	int ret = 0;
 	char *user_fw_path = 0;
-	int use_rpmsg_char = 0;
+	char rpmsg_dev_name[256];
+	char rpmsg_char_name[16];
+	char *rpmsg_svc="rpmsg-openamp-demo-channel";
 	int rpmsg_char_fd = -1;
-	int defaultept_fd = -1;
+	int ept_fd = -1;
+	struct rpmsg_endpoint_info eptinfo;
+	char ept_dev_name[16];
+	char ept_dev_path[32];
 
 	/* Initialize signalling infrastructure */
 	memset(&exit_action, 0, sizeof(struct sigaction));
@@ -341,11 +452,8 @@ int main(int argc, char *argv[])
 	sigaction(SIGKILL, &kill_action, NULL);
 	sigaction(SIGHUP, &kill_action, NULL);
 
-	while ((opt = getopt(argc, argv, "vchf:r:")) != -1) {
+	while ((opt = getopt(argc, argv, "vhf:r:")) != -1) {
 		switch (opt) {
-		case 'c':
-			use_rpmsg_char = 1;
-			break;
 		case 'f':
 			user_fw_path = optarg;
 			break;
@@ -380,7 +488,7 @@ int main(int argc, char *argv[])
 		"/sys/class/remoteproc/remoteproc%u/firmware",
 		r5_id);
 	if (0 != file_write(sbuf, "image_rpc_demo")) {
-		return -1;
+		return -EINVAL;
 	}
 
 	/* Tell remoteproc to load and start remote cpu */
@@ -388,76 +496,72 @@ int main(int argc, char *argv[])
 		"/sys/class/remoteproc/remoteproc%u/state",
 		r5_id);
 	if (0 != file_write(sbuf, "start")) {
-		return -1;
+		return -EINVAL;
 	}
 
+	/* Load rpmsg_char driver */
+	printf("\r\nMaster>probe rpmsg_char\r\n");
+	ret = system("modprobe rpmsg_char");
+	if (ret < 0) {
+		perror("Failed to load rpmsg_char driver.\n");
+		ret = -EINVAL;
+		goto error0;
+	}
+
+	/* Wait for rpmsg dev to be probed */
+	sleep(1);
+	ret = get_rpmsg_dev_name(rpmsg_svc, rpmsg_dev_name);
+	if (ret < 0)
+		goto error0;
+
+	ret = bind_rpmsg_chrdev(rpmsg_dev_name);
+	if (ret < 0)
+		goto error0;
+	rpmsg_char_fd = get_rpmsg_chrdev_fd(rpmsg_dev_name, rpmsg_char_name);
+	if (rpmsg_char_fd < 0) {
+		ret = rpmsg_char_fd;
+		goto error0;
+	}
+
+	/* Create endpoint from rpmsg char driver */
+	strcpy(eptinfo.name, "rpmsg-openamp-demo-channel");
+	eptinfo.src = 0;
+	eptinfo.dst = 0xFFFFFFFF;
+	ret = rpmsg_create_ept(rpmsg_char_fd, &eptinfo);
+	if (ret) {
+		printf("failed to create RPMsg endpoint.\n");
+		goto error0;
+	}
+	if (!get_rpmsg_ept_dev_name(rpmsg_char_name, eptinfo.name,
+				    ept_dev_name)) {
+		ret = -EINVAL;
+		goto error0;
+	}
+	sprintf(ept_dev_path, "/dev/%s", ept_dev_name);
+	ept_fd = open(ept_dev_path, O_RDWR | O_NONBLOCK);
+	if (ept_fd < 0) {
+		perror("Failed to open rpmsg device.");
+		ret = ept_fd;
+		goto error0;
+	}
 	/* Allocate memory for proxy data structure */
 	proxy = malloc(sizeof(struct _proxy_data));
-	if (proxy == 0) {
-		printf("\r\nMaster>Failed to allocate memory.\r\n");
-		return -1;
+	if (proxy == NULL) {
+		fprintf(stderr, "\r\nMaster>Failed to allocate memory.\r\n");
+		ret = -ENOMEM;
+		goto error0;
 	}
+	proxy->rpmsg_proxy_fd = ept_fd;
 	proxy->active = 1;
-	if (use_rpmsg_char) {
-		struct rpmsg_endpoint_info eptinfo;
-		char *rpmsg_char_devname = "/dev/rpmsg_ctrl0";
-		int fd;
-
-		printf("\r\nMaster>probe rpmsg_char\r\n");
-		system("modprobe rpmsg_char");
-		fd = open(rpmsg_char_devname, O_RDWR | O_NONBLOCK);
-		if (fd < 0) {
-			perror("Failed to open rpmsg char device.");
-			return -1;
-		}
-		rpmsg_char_fd = fd;
-		/* Create proxy endpoint */
-		strcpy(eptinfo.name, "rpmsg-proxy");
-		eptinfo.src = PROXY_ENDPOINT;
-		eptinfo.dst = PROXY_ENDPOINT;
-		fd = rpmsg_create_ept_dev(rpmsg_char_fd, &eptinfo);
-		if (fd < 0) {
-			printf("failed to create RPMsg proxy endpoint.\n");
-			ret = fd;
-			goto error0;
-		}
-		proxy->rpmsg_proxy_fd = fd;
-		/* create default endpoint */
-		strcpy(eptinfo.name, "rpmsg-openamp-demo-channel");
-		eptinfo.src = 0;
-		eptinfo.dst = 0xFFFFFFFF;
-		fd = rpmsg_create_ept_dev(rpmsg_char_fd, &eptinfo);
-		if (fd < 0) {
-			printf("failed to create RPMsg default endpoint.\n");
-			ret = fd;
-			close(proxy->rpmsg_proxy_fd);
-			goto error0;
-		}
-		defaultept_fd = fd;
-		ret = 0;
-	} else {
-		/* Create rpmsg proxy device */
-		printf("\r\nMaster>Create rpmsg proxy device\r\n");
-		system("modprobe rpmsg_user_dev_driver");
-
-		/* Open proxy rpmsg device */
-		printf("\r\nMaster>Opening rpmsg proxy device\r\n");
-		i = 0;
-		do {
-			proxy->rpmsg_proxy_fd = open("/dev/rpmsg0", O_RDWR);
-			sleep(1);
-		} while (proxy->rpmsg_proxy_fd < 0 && (i++ < 2));
-
-		if (proxy->rpmsg_proxy_fd < 0) {
-			printf("\r\nMaster>Failed to open rpmsg proxy driver device file.\r\n");
-			ret = -1;
-			goto error0;
-		}
-	}
 
 	/* Allocate memory for rpc payloads */
 	proxy->rpc = malloc(RPC_BUFF_SIZE);
 	proxy->rpc_response = malloc(RPC_BUFF_SIZE);
+	if (proxy->rpc == NULL || proxy->rpc_response == NULL) {
+		fprintf(stderr, "\r\nMaster>Failed to allocate memory.\r\n");
+		ret = -ENOMEM;
+		goto error0;
+	}
 
 	/* RPC service starts */
 	printf("\r\nMaster>RPC service started !!\r\n");
@@ -476,10 +580,12 @@ int main(int argc, char *argv[])
 	do {
 		bytes_rcvd = read(proxy->rpmsg_proxy_fd, proxy->rpc,
 				  RPC_BUFF_SIZE);
-		if (bytes_rcvd < 0 && bytes_rcvd != -EAGAIN)
+		if (bytes_rcvd < 0 && errno != EAGAIN) {
+			perror("Failed to read ept");
 			break;
+		}
 		/* Handle rpc */
-		if (handle_rpc(proxy->rpc)) {
+		if ( bytes_rcvd > 0 && handle_rpc(proxy->rpc)) {
 			printf("\nMaster>Err:Handling remote procedure call!\n");
 			printf("\nrpc id %d\n", proxy->rpc->id);
 			printf("\nrpc int field1 %d\n",
@@ -491,17 +597,25 @@ int main(int argc, char *argv[])
 	} while(proxy->active);
 
 	printf("\r\nMaster>RPC service exiting !!\r\n");
+	ret = 0;
 
 	/* Close proxy rpmsg device */
 	close(proxy->rpmsg_proxy_fd);
+
+	/* Wait for other end to cleanup
+	 * Otherwise, virtio_rpmsg_bus can post msg with no recipient
+	 * warning as it can receive NS destroy after the rpmsg char
+	 * module is removed.
+	 */
+	sleep(1);
 
 	/* Free up resources */
 	free(proxy->rpc);
 	free(proxy->rpc_response);
 
 error0:
-	if (defaultept_fd >= 0)
-		close(defaultept_fd);
+	if (ept_fd >= 0)
+		close(ept_fd);
 	if (rpmsg_char_fd >= 0)
 		close(rpmsg_char_fd);
 	free(proxy);
