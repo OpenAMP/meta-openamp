@@ -7,9 +7,12 @@ SRC_URI = "\
 	file://LICENSE \
 	file://Makefile \
 	file://echo_test.c \
+	file://run-ptest \
 	"
 
 S = "${WORKDIR}"
+
+inherit ptest
 
 RDEPENDS_${PN} = "kernel-module-rpmsg-char"
 

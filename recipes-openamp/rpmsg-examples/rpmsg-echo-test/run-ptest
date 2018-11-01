@@ -1,0 +1,38 @@
+#!/bin/sh
+
+rproc_dir="/sys/class/remoteproc/"
+
+function launch_app {
+	app=$1
+	rproc=$2
+
+	echo ${app} > "${rproc_dir}"/remoteproc${rproc}/firmware
+	if [ $? -ne 0 ]; then
+		return 255
+	fi
+	echo start > "${rproc_dir}"/remoteproc${rproc}/state
+	return $?
+}
+
+function rpmsg_echo {
+	launch_app "rpmsg-echo.out" 0
+	if [ $? -ne 0 ]; then
+		return ${ret}
+	fi
+	modprobe rpmsg_char
+	echo_test
+	ret=$?
+	echo stop > "${rproc_dir}/remoteproc0/state"
+	if [ $? -ne 0 ]; then
+		return 255
+	fi
+	return ${ret}
+}
+
+
+rpmsg_echo
+if [ $? -ne 0 ]; then
+	echo "FAIL: kernel rpmsg echo"
+else
+	echo "PASS: kernel rpmsg echo"
+fi
