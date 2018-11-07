@@ -1,0 +1,28 @@
+From f961176677491e5a3f85343306d99d75174a0e8e Mon Sep 17 00:00:00 2001
+From: Hyun Kwon <hyun.kwon@xilinx.com>
+Date: Mon, 5 Nov 2018 17:13:35 -0800
+Subject: [PATCH 2/2] linux: device: Initialize the irq info
+
+Initialize the irq info with -1, otherwise it misleads the cleanup
+code and throws an error.
+
+Signed-off-by: Hyun Kwon <hyun.kwon@xilinx.com>
+---
+ lib/system/linux/device.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/lib/system/linux/device.c b/lib/system/linux/device.c
+index 450ea64..6fc3cb6 100644
+--- a/lib/system/linux/device.c
++++ b/lib/system/linux/device.c
+@@ -156,6 +156,7 @@ static int metal_uio_dev_open(struct linux_bus *lbus, struct linux_device *ldev)
+ 
+ 
+ 	ldev->fd = -1;
++	ldev->device.irq_info = (void *)-1;
+ 
+ 	ldev->sdev = sysfs_open_device(lbus->bus_name, ldev->dev_name);
+ 	if (!ldev->sdev) {
+-- 
+2.7.4
+

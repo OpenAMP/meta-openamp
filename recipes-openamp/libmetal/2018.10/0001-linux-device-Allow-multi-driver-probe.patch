@@ -1,0 +1,67 @@
+From a0a0e5e04ae84c50648f716c42c80c0637e68f88 Mon Sep 17 00:00:00 2001
+From: Hyun Kwon <hyun.kwon@xilinx.com>
+Date: Mon, 5 Nov 2018 17:12:36 -0800
+Subject: [PATCH 1/2] linux: device: Allow multi-driver probe
+
+There can be cases where multiple drivers exist on the bus.
+In that case, instead of just probing the first one, it should
+try to probe all. Return an error only when there is no driver
+available on the bus. The error return will invalidate the bus.
+
+Signed-off-by: Hyun Kwon <hyun.kwon@xilinx.com>
+---
+ lib/system/linux/device.c | 22 ++++++++++------------
+ 1 file changed, 10 insertions(+), 12 deletions(-)
+
+diff --git a/lib/system/linux/device.c b/lib/system/linux/device.c
+index 85af0d7..450ea64 100644
+--- a/lib/system/linux/device.c
++++ b/lib/system/linux/device.c
+@@ -586,34 +586,32 @@ static int metal_linux_probe_driver(struct linux_bus *lbus,
+ 	return ldrv->sdrv ? 0 : -ENODEV;
+ }
+ 
++static void metal_linux_bus_close(struct metal_bus *bus);
++
+ static int metal_linux_probe_bus(struct linux_bus *lbus)
+ {
+ 	struct linux_driver *ldrv;
+-	int error = -ENODEV;
++	int ret, error = -ENODEV;
+ 
+ 	lbus->sbus = sysfs_open_bus(lbus->bus_name);
+ 	if (!lbus->sbus)
+ 		return -ENODEV;
+ 
+ 	for_each_linux_driver(lbus, ldrv) {
+-		error = metal_linux_probe_driver(lbus, ldrv);
+-		if (!error)
+-			break;
++		ret = metal_linux_probe_driver(lbus, ldrv);
++		/* Clear the error if any driver is available */
++		if (!ret)
++			error = ret;
+ 	}
+ 
+ 	if (error) {
+-		sysfs_close_bus(lbus->sbus);
+-		lbus->sbus = NULL;
++		metal_linux_bus_close(&lbus->bus);
+ 		return error;
+ 	}
+ 
+ 	error = metal_linux_register_bus(lbus);
+-	if (error) {
+-		sysfs_close_driver(ldrv->sdrv);
+-		ldrv->sdrv = NULL;
+-		sysfs_close_bus(lbus->sbus);
+-		lbus->sbus = NULL;
+-	}
++	if (error)
++		metal_linux_bus_close(&lbus->bus);
+ 
+ 	return error;
+ }
+-- 
+2.7.4
+
