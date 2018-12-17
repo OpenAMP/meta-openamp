@@ -172,6 +172,8 @@ static char *get_rpmsg_ept_dev_name(const char *rpmsg_char_name,
 		sprintf(sys_rpmsg_ept_name_path, "%s/%s/rpmsg%d/name",
 			sys_rpmsg_path, rpmsg_char_name, i);
 		printf("checking %s\n", sys_rpmsg_ept_name_path);
+		if (access(sys_rpmsg_ept_name_path, F_OK) < 0)
+			continue;
 		fp = fopen(sys_rpmsg_ept_name_path, "r");
 		if (!fp) {
 			printf("failed to open %s\n", sys_rpmsg_ept_name_path);
