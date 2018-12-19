@@ -301,8 +301,15 @@ int main(int argc, char *argv[])
 	}
 	printf("\r\n Matrix multiplication demo start \r\n");
 
-	printf("\r\n Open rpmsg dev %s! \r\n", rpmsg_dev);
+	/* Load rpmsg_char driver */
+	printf("\r\nMaster>probe rpmsg_char\r\n");
+	ret = system("modprobe rpmsg_char");
+	if (ret < 0) {
+		perror("Failed to load rpmsg_char driver.\n");
+		return -EINVAL;
+	}
 
+	printf("\r\n Open rpmsg dev %s! \r\n", rpmsg_dev);
 	sprintf(fpath, "%s/devices/%s", RPMSG_BUS_SYS, rpmsg_dev);
 	if (access(fpath, F_OK)) {
 		fprintf(stderr, "Not able to access rpmsg device %s, %s\n",
