@@ -20,7 +20,7 @@ DEPENDS = "libmetal"
 
 PROVIDES = "openamp"
 
-inherit pkgconfig cmake
+inherit pkgconfig cmake yocto-cmake-translation
 
 OPENAMP_MACHINE_versal = "zynqmp"
 OPENAMP_MACHINE ?= "${@get_cmake_machine(d.getVar('TARGET_OS'), d.getVar('TUNE_ARCH'), d.getVar('SOC_FAMILY'), d)}"
