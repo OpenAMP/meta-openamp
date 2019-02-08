@@ -1,6 +1,0 @@
-define KFEATURE_DESCRIPTION "OpenAMP Linux Kernel virtio rpmsg char experiment"
-define KFEATURE_COMPATIBILITY arch
-
-patch 0001-rpmsg-virtio-rpmsg-Add-RPMsg-char-driver-support.patch
-
-kconf non-hardware openamp-experiment-virtio-rpmsg-char.cfg
