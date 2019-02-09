@@ -12,7 +12,7 @@ SRC_URI = "\
 
 S = "${WORKDIR}"
 
-RDEPENDS_${PN} = "kernel-module-rpmsg-char"
+RRECOMMENDS_${PN} = "kernel-module-rpmsg-char"
 
 FILES_${PN} = "\
 	/usr/bin/proxy_app \
