@@ -44,6 +44,7 @@ FILES_${PN} = " \
 "
 FILES_${PN}-demos = " \
     ${bindir}/libmetal_* \
+    ${bindir}/*demo \
 "
 
 do_install_append () {
