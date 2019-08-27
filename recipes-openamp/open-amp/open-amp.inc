@@ -28,13 +28,11 @@ EXTRA_OECMAKE = " \
 	-DLIB_INSTALL_DIR=${libdir} \
 	-DLIBEXEC_INSTALL_DIR=${libexecdir} \
 	-DMACHINE=${OPENAMP_MACHINE} \
-	-DWITH_PROXY=off \
-	-DWITH_PROXY_APPS=off \
 	"
 
 # OpenAMP apps not ready for Zynq
-EXTRA_OECMAKE_append_zynqmp = "-DWITH_APPS=ON"
-EXTRA_OECMAKE_append_versal = "-DWITH_APPS=ON"
+EXTRA_OECMAKE_append_zynqmp = "-DWITH_APPS=ON -DWITH_PROXY=on -DWITH_PROXY_APPS=on "
+EXTRA_OECMAKE_append_versal = "-DWITH_APPS=ON -DWITH_PROXY=on -DWITH_PROXY_APPS=on "
 
 ALLOW_EMPTY_${PN}-demos = "1"
 PACKAGES_append += "${PN}-demos"
