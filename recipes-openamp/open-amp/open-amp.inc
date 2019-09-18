@@ -30,6 +30,7 @@ EXTRA_OECMAKE = " \
 	-DMACHINE=${OPENAMP_MACHINE} \
 	"
 
+CFLAGS_versal += " -Dversal "
 # OpenAMP apps not ready for Zynq
 EXTRA_OECMAKE_append_zynqmp = "-DWITH_APPS=ON -DWITH_PROXY=on -DWITH_PROXY_APPS=on "
 EXTRA_OECMAKE_append_versal = "-DWITH_APPS=ON -DWITH_PROXY=on -DWITH_PROXY_APPS=on "
