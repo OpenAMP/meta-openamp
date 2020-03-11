@@ -30,6 +30,8 @@ EXTRA_OECMAKE = " \
 	-DMACHINE=${OPENAMP_MACHINE} \
 	"
 
+PACKAGE_ARCH = "${SOC_FAMILY_ARCH}"
+
 CFLAGS_versal += " -Dversal "
 # OpenAMP apps not ready for Zynq
 EXTRA_OECMAKE_append_zynqmp = "-DWITH_APPS=ON -DWITH_PROXY=on -DWITH_PROXY_APPS=on "
