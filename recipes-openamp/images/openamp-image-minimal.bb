@@ -9,9 +9,6 @@ IMAGE_INSTALL += " \
     packagegroup-core-boot \
     ${CORE_IMAGE_EXTRA_INSTALL} \
     kernel-module-uio-pdrv-genirq \
-    kernel-module-remoteproc \
-    kernel-module-virtio \
-    kernel-module-virtio-ring \
     kernel-module-virtio-rpmsg-bus \
     libmetal \
     open-amp \
