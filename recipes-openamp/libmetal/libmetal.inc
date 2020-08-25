@@ -37,6 +37,10 @@ EXTRA_OECMAKE = " \
 	-DWITH_EXAMPLES=ON \
 	-DSOC_FAMILY="${SOC_FAMILY}" \
 	"
+
+EXTRA_OECMAKE_zynqmp += " -DWITH_VFIO=on"
+EXTRA_OECMAKE_versal += " -DWITH_VFIO=on"
+
 ALLOW_EMPTY_${PN}-demos = "1"
 
 PACKAGES_append += "${PN}-demos"
