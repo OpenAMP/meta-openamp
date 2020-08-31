@@ -1,0 +1,4 @@
+define KFEATURE_DESCRIPTION "Enable sparse vmem map"
+define KFEATURE_COMPATIBILITY arch
+
+kconf non-hardware sparsevmemmap.cfg
