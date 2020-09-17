@@ -38,8 +38,8 @@ EXTRA_OECMAKE = " \
 	-DSOC_FAMILY="${SOC_FAMILY}" \
 	"
 
-EXTRA_OECMAKE_zynqmp += " -DWITH_VFIO=on"
-EXTRA_OECMAKE_versal += " -DWITH_VFIO=on"
+EXTRA_OECMAKE_append_zynqmp = " -DWITH_VFIO=on"
+EXTRA_OECMAKE_append_versal = " -DWITH_VFIO=on"
 
 ALLOW_EMPTY_${PN}-demos = "1"
 
