@@ -28,7 +28,10 @@ inherit pkgconfig cmake yocto-cmake-translation
 LIBMETAL_MACHINE_versal = "zynqmp"
 LIBMETAL_MACHINE ?= "${@get_cmake_machine(d.getVar('TARGET_OS'), d.getVar('TUNE_ARCH'), d.getVar('SOC_FAMILY'), d)}"
 
-PACKAGE_ARCH = "${SOC_FAMILY_ARCH}"
+PACKAGE_ARCH = "${MACHINE_ARCH}"
+PACKAGE_ARCH_zynq = "${SOC_FAMILY_ARCH}"
+PACKAGE_ARCH_zynqmp = "${SOC_FAMILY_ARCH}"
+PACKAGE_ARCH_versal = "${SOC_FAMILY_ARCH}"
 
 EXTRA_OECMAKE = " \
 	-DLIB_INSTALL_DIR=${libdir} \
