@@ -1,5 +1,6 @@
-SRCBRANCH ?= "rel-v2020.2"
-SRCREV ?= "29eb98c02326199ad4245a484611a3b199d55bab"
+SRCBRANCH ?= "master-rel-2021.1"
+SRCREV = "84041fa84d9bc524357b030ebe9a5174b01377bd"
+BRANCH = "master-rel-2021.1"
 LIC_FILES_CHKSUM ?= "file://LICENSE.md;md5=0e6d7bfe689fe5b0d0a89b2ccbe053fa"
 PV = "${SRCBRANCH}+git${SRCPV}"
 
