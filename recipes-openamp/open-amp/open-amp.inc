@@ -35,20 +35,20 @@ PACKAGE_ARCH = "${SOC_FAMILY_ARCH}"
 
 CFLAGS_versal += " -Dversal "
 # OpenAMP apps not ready for Zynq
-EXTRA_OECMAKE_append_zynqmp = "-DWITH_APPS=ON -DWITH_PROXY=on -DWITH_PROXY_APPS=on "
-EXTRA_OECMAKE_append_versal = "-DWITH_APPS=ON -DWITH_PROXY=on -DWITH_PROXY_APPS=on "
+EXTRA_OECMAKE:append_zynqmp = "-DWITH_APPS=ON -DWITH_PROXY=on -DWITH_PROXY_APPS=on "
+EXTRA_OECMAKE:append_versal = "-DWITH_APPS=ON -DWITH_PROXY=on -DWITH_PROXY_APPS=on "
 
-ALLOW_EMPTY_${PN}-demos = "1"
-PACKAGES_append += "${PN}-demos"
+ALLOW_EMPTY:${PN}-demos = "1"
+PACKAGES:append += "${PN}-demos"
 
-FILES_${PN} = " \
+FILES:${PN} = " \
     ${libdir}/*.so* \
 "
 
-FILES_${PN}-demos = " \
+FILES:${PN}-demos = " \
     ${bindir}/*-shared \
 "
-do_install_append () {
+do_install:append () {
 	# Only install echo test client, matrix multiplication client,
 	# and proxy app server for ZynqMP
 	rm -rf ${D}/${bindir}/*-static
