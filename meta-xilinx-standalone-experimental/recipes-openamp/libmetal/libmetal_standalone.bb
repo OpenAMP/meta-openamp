@@ -8,7 +8,7 @@ SRC_URI_armrm_xilinx-standalone = "git://gitenterprise.xilinx.com/OpenAMP/libmet
 
 OECMAKE_SOURCEPATH = "${S}/"
 PROVIDES_armrm_xilinx-standalone = "libmetal "
-DEPENDS_armrm_xilinx-standalone += " libxil scugic doxygen-native "
+DEPENDS_armrm_xilinx-standalone += " libxil scugic doxygen-native xilstandalone"
 inherit cmake
 LICENSE = "BSD"
 LIC_FILES_CHKSUM = "file://LICENSE.md;md5=1ff609e96fc79b87da48a837cbe5db33"
@@ -16,12 +16,14 @@ LIC_FILES_CHKSUM = "file://LICENSE.md;md5=1ff609e96fc79b87da48a837cbe5db33"
 EXTRA_OECMAKE_armrm_xilinx-standalone = " \
 	-DLIB_INSTALL_DIR=${libdir} \
 	-DSOC_FAMILY="${SOC_FAMILY}" \
+	-DWITH_EXAMPLES=ON \
 "
 
 ALLOW_EMPTY_${PN}-demos = "1"
 
 FILES_${PN}-demos_armrm_xilinx-standalone = " \
     ${bindir}/libmetal_* \
+    ${bindir}/*ocm_demo.elf \
 "
 
 COMPATIBLE_HOST = ".*-elf"
@@ -56,8 +58,10 @@ cmake_do_generate_toolchain_file_armrm_xilinx-standalone_append() {
     include (CMakeForceCompiler)
     CMAKE_FORCE_C_COMPILER("${OECMAKE_C_COMPILER}" GNU)
     set (CROSS_PREFIX           "${LIBMETAL_CROSS_PREFIX}" CACHE STRING "")
+    set (CMAKE_LIBRARY_PATH "${S}/../recipe-sysroot/usr/lib" CACHE STRING "")
     SET(CMAKE_C_ARCHIVE_FINISH   true)
     set (CMAKE_INCLUDE_PATH "${S}/../recipe-sysroot/usr/include/" CACHE STRING "")
     include (cross-generic-gcc)
+    add_definitions(-DWITH_DOC=OFF)
 EOF
 }
