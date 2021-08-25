@@ -1,0 +1,60 @@
+resource_groups:
+    resource_group0:
+        compatible:
+            - "openamp,remoteproc-v1"
+            - "openamp,group-v1"
+        memory:
+            - start: 0x3ed00000
+              size: 0x40000
+            - start: 0x3ed40000
+              size: 0x4000
+            - start: 0x3ed44000
+              size: 0x4000
+            - start: 0x3ed48000
+              size: 0x100000
+        access:
+            - dev: versal_cips_0_pspmc_0_psv_r5_0_btcm_global
+              flags: f
+            - dev: versal_cips_0_pspmc_0_psv_r5_0_atcm_global
+              flags: f
+        #openamp-xlnx-kernel: true
+domains:
+    openamp_r5_cluster:
+        compatible:
+            - "openamp,domain-v1"
+        cpus:
+            - cluster: cpus_r5
+              cpumask: 0x3
+              mode:
+                  secure: false
+                  el: 0x3
+        domains:
+            openamp_r5_0:
+                cpus:
+                    - cluster: cpus_r5
+                      cpumask: 0x1
+                      mode:
+                          secure: false
+                          el: 0x3
+                compatible: "openamp,domain-v1"
+                include: 
+                    - resource_group0
+                access:
+                    - dev: ipi4
+                      flags: 0x13
+
+    openamp_a72_cluster:
+       compatible:
+           - "openamp,domain-v1"
+       cpus:
+           - cluster: cpus_a72
+             cpumask: 0x3
+             mode:
+                 secure: true
+                 el: 0x3
+       include: 
+           - resource_group0
+       openamp-host: true
+       access:
+           - dev: ipi6
+             flags: 0x13
