@@ -65,3 +65,14 @@ cmake_do_generate_toolchain_file_armrm_xilinx-standalone_append() {
     add_definitions(-DWITH_DOC=OFF)
 EOF
 }
+
+# deploy for other recipes
+DEPLOY_MACHINE = "${@ d.getVar('MACHINE_ARCH').replace('_','-') }"
+SHOULD_DEPLOY = "${@'true' if ( 'Standalone' in  d.getVar('DISTRO_NAME') ) else 'false'}"
+do_deploy() {
+    echo "get the following: ";
+    if ${SHOULD_DEPLOY}; then
+        install -Dm 0644 ${D}/usr/bin/*.elf ${DEPLOY_DIR}/images/${DEPLOY_MACHINE}/
+    fi
+}
+addtask deploy before do_build after do_install
