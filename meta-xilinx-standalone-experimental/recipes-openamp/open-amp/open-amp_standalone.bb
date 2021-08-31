@@ -147,13 +147,13 @@ python do_set_openamp_cmake_vars() {
     SHM_DEV_NAME   = get_rsc_mem_pa_str( RSC_MEM_PA )
 
     d.setVar("RING_RX",            RX)
-    d.setVar("RING_TX",          TX)
+    d.setVar("RING_TX",            TX)
     d.setVar("SHARED_MEM_PA",      VDEV0VRING0BASE)
     d.setVar("SHARED_MEM_SIZE",    VDEV0BUFFERSIZE)
-    d.setVar("SHARED_BUF_OFFSET", VRING_MEM_SIZE)
+    d.setVar("SHARED_BUF_OFFSET",  VRING_MEM_SIZE)
     d.setVar("HOSTBITMASK",        REMOTEBITMASK)
-    d.setVar("HOSTIPI",            REMOTEIPI)
-    d.setVar("REMOTEBITMASK",      HOSTBITMASK)
+    d.setVar("POLL_BASE_ADDR",     REMOTEIPI)
+    d.setVar("IPI_CHN_BITMASK",    HOSTBITMASK)
     d.setVar("IPI_IRQ_VECT_ID",    REMOTE_IRQVECTID)
     d.setVar("SHARED_MEM_PA",      VDEV0VRING0BASE)
     d.setVar("SHARED_MEM_SIZE",    VDEV0BUFFERSIZE)
@@ -191,7 +191,7 @@ python openamp_toolchain_file_setup() {
         toolchain_file.write(line + "\n")
 
     # openamp app specific info
-    config_vars = [ "RING_RX", "RING_TX", "SHARED_MEM_PA", "SHARED_MEM_SIZE", "SHARED_MEM_PA"]
+    config_vars = [ "RING_RX", "RING_TX", "SHARED_MEM_PA", "SHARED_MEM_SIZE", "SHARED_BUF_OFFSET", "POLL_BASE_ADDR", "IPI_CHN_BITMASK", "IPI_IRQ_VECT_ID"]
 
     defs = " "
     for cv in config_vars:
