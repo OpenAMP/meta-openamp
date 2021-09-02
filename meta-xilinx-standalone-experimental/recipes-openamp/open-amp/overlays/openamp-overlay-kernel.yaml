@@ -4,6 +4,7 @@ resource_groups:
             - "openamp,remoteproc-v1"
             - "openamp,group-v1"
         memory:
+            # order is elf load, vring0, vring1, shared buffers
             - start: 0x3ed00000
               size: 0x40000
             - start: 0x3ed40000
@@ -14,34 +15,25 @@ resource_groups:
               size: 0x100000
         access:
             - dev: versal_cips_0_pspmc_0_psv_r5_0_btcm_global
-              flags: f
+              flags: 0 # flags is required. put 0 to denote this is not used.
             - dev: versal_cips_0_pspmc_0_psv_r5_0_atcm_global
-              flags: f
-        #openamp-xlnx-kernel: true
+              flags: 0 # flags is required. put 0 to denote this is not used.
+        openamp-xlnx-kernel: true # if true, then use kernel driver. false, use native OpenAMP impl.
 domains:
-    openamp_r5_cluster:
-        compatible:
-            - "openamp,domain-v1"
-        cpus:
-            - cluster: cpus_r5
-              cpumask: 0x3
-              mode:
-                  secure: false
-                  el: 0x3
-        domains:
-            openamp_r5_0:
-                cpus:
-                    - cluster: cpus_r5
-                      cpumask: 0x1
-                      mode:
-                          secure: false
-                          el: 0x3
-                compatible: "openamp,domain-v1"
-                include: 
-                    - resource_group0
-                access:
-                    - dev: ipi4
-                      flags: 0x13
+    openamp_r5_0:
+      compatible:
+         - "openamp,domain-v1"
+      cpus:
+         - cluster: cpus_r5
+           cpumask: 0x1
+           mode:
+               secure: false
+               el: 0x3
+      include: 
+          - resource_group0
+      access:
+          - dev: ipi4
+            flags: 0x13
 
     openamp_a72_cluster:
        compatible:
@@ -54,7 +46,7 @@ domains:
                  el: 0x3
        include: 
            - resource_group0
-       openamp-host: true
+       openamp-host: true # if present and true, then this is host in OpenAMP Channel
        access:
            - dev: ipi6
              flags: 0x13
