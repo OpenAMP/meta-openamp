@@ -2,8 +2,8 @@ LICENSE = "BSD"
 LIC_FILES_CHKSUM = "file://LICENSE.md;md5=0e6d7bfe689fe5b0d0a89b2ccbe053fa"
 SRC_URI_armrm_xilinx-standalone = "git://gitenterprise.xilinx.com/OpenAMP/open-amp.git;branch=xlnx_decoupling"
 
+SRCREV = "0720f88f065f11d2223cde4c790a7f35bbcc098a"
 
-SRCREV = "0d8d94f1577fb0ae53f3999b538dde9e73080893"
 S = "${WORKDIR}/git"
 B = "${WORKDIR}/build"
 OECMAKE_SOURCEPATH = "${S}/"

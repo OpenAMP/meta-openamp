@@ -8,7 +8,7 @@ LICENSE = "BSD"
 LIC_FILES_CHKSUM ?= "file://LICENSE.md;md5=0e6d7bfe689fe5b0d0a89b2ccbe053fa"
 
 SRC_URI = "git://gitenterprise.xilinx.com/OpenAMP/open-amp.git;protocol=https;branch=xlnx_decoupling"
-SRCREV = "${AUTOREV}"
+SRCREV = "0720f88f065f11d2223cde4c790a7f35bbcc098a"
 
 S = "${WORKDIR}/git"
 
