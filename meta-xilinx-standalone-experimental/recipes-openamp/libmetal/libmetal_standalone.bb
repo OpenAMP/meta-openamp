@@ -1,6 +1,6 @@
 require ${LAYER_PATH_openamp-layer}/recipes-openamp/libmetal/libmetal.inc
 
-SRCREV = "${AUTOREV}"
+SRCREV = "b7bfd6264edfa8cc125af61c55c22f5723c65d11"
 S = "${WORKDIR}/git"
 B = "${WORKDIR}/build"
 
@@ -13,10 +13,13 @@ inherit cmake
 LICENSE = "BSD"
 LIC_FILES_CHKSUM = "file://LICENSE.md;md5=1ff609e96fc79b87da48a837cbe5db33"
 
+do_configure_armrm_xilinx-standalone[depends] += "device-tree-lops:do_deploy"
+
 EXTRA_OECMAKE_armrm_xilinx-standalone = " \
 	-DLIB_INSTALL_DIR=${libdir} \
 	-DSOC_FAMILY="${SOC_FAMILY}" \
 	-DWITH_EXAMPLES=ON \
+	-DWITH_DOCS=OFF \
 "
 
 ALLOW_EMPTY_${PN}-demos = "1"
@@ -28,6 +31,9 @@ FILES_${PN}-demos_armrm_xilinx-standalone = " \
 
 COMPATIBLE_HOST = ".*-elf"
 COMPATIBLE_HOST_arm = "[^-]*-[^-]*-eabi"
+
+LIBMETAL_CMAKE_MACHINE_versal = "Versal"
+LIBMETAL_CMAKE_MACHINE_zynqmp = "Zynqmp"
 
 def get_cross_prefix(oe_cmake_c_compiler):
   if oe_cmake_c_compiler == 'arm-xilinx-eabi-gcc':
