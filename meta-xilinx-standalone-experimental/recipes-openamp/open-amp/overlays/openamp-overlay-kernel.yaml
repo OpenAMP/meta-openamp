@@ -14,9 +14,9 @@ resource_groups:
             - start: 0x3ed48000
               size: 0x100000
         access:
-            - dev: versal_cips_0_pspmc_0_psv_r5_0_btcm_global
+            - dev: psv_r5_0_atcm_global
               flags: 0 # flags is required. put 0 to denote this is not used.
-            - dev: versal_cips_0_pspmc_0_psv_r5_0_atcm_global
+            - dev: psv_r5_0_btcm_global
               flags: 0 # flags is required. put 0 to denote this is not used.
         openamp-xlnx-kernel: true # if true, then use kernel driver. false, use native OpenAMP impl.
 domains:
