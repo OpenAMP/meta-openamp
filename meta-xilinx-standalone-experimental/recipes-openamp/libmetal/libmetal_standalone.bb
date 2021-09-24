@@ -1,6 +1,6 @@
 require ${LAYER_PATH_openamp-layer}/recipes-openamp/libmetal/libmetal.inc
 
-SRCREV = "b7bfd6264edfa8cc125af61c55c22f5723c65d11"
+SRCREV = "7e6ac3f659724204fd5917952fafb74478c39e43"
 S = "${WORKDIR}/git"
 B = "${WORKDIR}/build"
 
