@@ -17,9 +17,9 @@ SRC_URI = "${REPO};${BRANCHARG}"
 S = "${WORKDIR}/git"
 
 # if user want to enable hugetlbfs support, please
-# add "DEPENDS:append:pn-libmetal = " libhugetlbfs "" to your local.conf
-DEPENDS = "sysfsutils udev"
-RDEPENDS:${PN} += "libudev"
+# add "DEPENDS_append_pn-libmetal = " libhugetlbfs "" to your local.conf
+DEPENDS = "sysfsutils ${@bb.utils.contains('DISTRO_FEATURES', 'systemd', 'udev', 'eudev', d)}"
+RDEPENDS_${PN}_append_aarch64_linux = " libudev"
 
 PROVIDES = "libmetal"
 
@@ -39,23 +39,23 @@ EXTRA_OECMAKE = " \
 	-DSOC_FAMILY="${SOC_FAMILY}" \
 	"
 
-EXTRA_OECMAKE:append_zynqmp = " -DWITH_VFIO=on"
-EXTRA_OECMAKE:append_versal = " -DWITH_VFIO=on"
+EXTRA_OECMAKE_append_zynqmp = " -DWITH_VFIO=on"
+EXTRA_OECMAKE_append_versal = " -DWITH_VFIO=on"
 
-ALLOW_EMPTY:${PN}-demos = "1"
+ALLOW_EMPTY_${PN}-demos = "1"
 
-PACKAGES:append += "${PN}-demos"
+PACKAGES_append += "${PN}-demos"
 
-FILES:${PN} = " \
+FILES_${PN} = " \
     ${libdir}/*.so* \
     ${bindir}/test-* \
 "
-FILES:${PN}-demos = " \
+FILES_${PN}-demos = " \
     ${bindir}/libmetal_* \
     ${bindir}/*demo \
 "
 
-do_install:append () {
+do_install_append () {
 	# Only install the shared lib binaries
 	rm -rf ${D}/${bindir}/*-static
 

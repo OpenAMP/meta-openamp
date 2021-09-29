@@ -12,9 +12,9 @@ SRC_URI = "\
 
 S = "${WORKDIR}"
 
-RRECOMMENDS:${PN} = "kernel-module-rpmsg-char"
+RRECOMMENDS_${PN} = "kernel-module-rpmsg-char"
 
-FILES:${PN} = "\
+FILES_${PN} = "\
 	/usr/bin/mat_mul_demo\
 "
 

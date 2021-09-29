@@ -15,7 +15,6 @@
 #include <sys/ioctl.h>
 #include <time.h>
 #include <fcntl.h>
-#include <pthread.h>
 #include <string.h>
 #include <linux/rpmsg.h>
 
@@ -73,78 +72,29 @@ static void generate_matrices(int num_matrices,
 
 }
 
-static pthread_t ui_thread, compute_thread;
-static pthread_mutex_t sync_lock;
-
-static int charfd = -1, fd, compute_flag;
-static int ntimes = 1;
+static int charfd = -1, fd;
 static struct _matrix i_matrix[2];
 static struct _matrix r_matrix;
 
-#define RPMSG_GET_KFIFO_SIZE 1
-#define RPMSG_GET_FREE_SPACE 3
-
-void *ui_thread_entry(void *ptr)
+void matrix_mult(int ntimes)
 {
-	int cmd, ret, i;
+	int i;
 
 	for (i=0; i < ntimes; i++){
-		printf("\r\n **********************************");
-		printf("****\r\n");
-		printf("\r\n  Matrix multiplication demo Round %d \r\n", i);
-		printf("\r\n **********************************");
-		printf("****\r\n");
-		compute_flag = 1;
-		pthread_mutex_unlock(&sync_lock);
-
-		printf("\r\n Compute thread unblocked .. \r\n");
-		printf(" The compute thread is now blocking on");
-		printf("a read() from rpmsg device \r\n");
-		printf("\r\n Generating random matrices now ... \r\n");
-
 		generate_matrices(2, 6, i_matrix);
 
-		printf("\r\n Writing generated matrices to rpmsg ");
-		printf("rpmsg device, %d bytes .. \r\n",
-				sizeof(i_matrix));
+		printf("%d: write rpmsg: %lu bytes\n", i, sizeof(i_matrix));
+		ssize_t rc = write(fd, i_matrix, sizeof(i_matrix));
+		if (rc < 0)
+			fprintf(stderr, "write,errno = %ld, %d\n", rc, errno);
 
-		write(fd, i_matrix, sizeof(i_matrix));
-
-		/* adding this so the threads
-		dont overlay the strings they print */
-		sleep(1);
-		printf("\r\nEnd of Matrix multiplication demo Round %d \r\n", i);
-	}
-
-	compute_flag = 0;
-	pthread_mutex_unlock(&sync_lock);
-	printf("\r\n Quitting application .. \r\n");
-	printf(" Matrix multiplication demo end \r\n");
-
-	return 0;
-}
-
-void *compute_thread_entry(void *ptr)
-{
-	int bytes_rcvd;
-
-	pthread_mutex_lock(&sync_lock);
-
-	while (compute_flag == 1) {
-
+		puts("read results");
 		do {
-			bytes_rcvd = read(fd, &r_matrix, sizeof(r_matrix));
-		} while ((bytes_rcvd < sizeof(r_matrix)) || (bytes_rcvd < 0));
-
-		printf("\r\n Received results! - %d bytes from ", bytes_rcvd);
-		printf("rpmsg device (transmitted from remote context) \r\n");
-
+			rc = read(fd, &r_matrix, sizeof(r_matrix));
+		} while (rc < (int)sizeof(r_matrix));
 		matrix_print(&r_matrix);
-
-		pthread_mutex_lock(&sync_lock);
+		printf("End of Matrix multiplication demo Round %d\n", i);
 	}
-
-	return 0;
 }
 
 int rpmsg_create_ept(int rpfd, struct rpmsg_endpoint_info *eptinfo)
@@ -241,8 +191,7 @@ static int bind_rpmsg_chrdev(const char *rpmsg_dev_name)
 static int get_rpmsg_chrdev_fd(const char *rpmsg_dev_name,
 			       char *rpmsg_ctrl_name)
 {
-	char dpath[256];
-	char fpath[256];
+	char dpath[PATH_MAX];
 	char *rpmsg_ctrl_prefix = "rpmsg_ctrl";
 	DIR *dir;
 	struct dirent *ent;
@@ -257,13 +206,13 @@ static int get_rpmsg_chrdev_fd(const char *rpmsg_dev_name,
 	while ((ent = readdir(dir)) != NULL) {
 		if (!strncmp(ent->d_name, rpmsg_ctrl_prefix,
 			    strlen(rpmsg_ctrl_prefix))) {
-			printf("Opening file %s.\n", ent->d_name);
-			sprintf(fpath, "/dev/%s", ent->d_name);
-			fd = open(fpath, O_RDWR | O_NONBLOCK);
+			sprintf(dpath, "/dev/%s", ent->d_name);
+			printf("open %s\n", dpath);
+			fd = open(dpath, O_RDWR | O_NONBLOCK);
 			if (fd < 0) {
 				fprintf(stderr,
 					"Failed to open rpmsg char dev %s,%s\n",
-					fpath, strerror(errno));
+					dpath, strerror(errno));
 				return fd;
 			}
 			sprintf(rpmsg_ctrl_name, "%s", ent->d_name);
@@ -277,7 +226,7 @@ static int get_rpmsg_chrdev_fd(const char *rpmsg_dev_name,
 
 int main(int argc, char *argv[])
 {
-	unsigned int size;
+	int ntimes = 1;
 	int opt, ret;
 	char *rpmsg_dev="virtio0.rpmsg-openamp-demo-channel.-1.0";
 	char rpmsg_char_name[16];
@@ -303,7 +252,7 @@ int main(int argc, char *argv[])
 
 	/* Load rpmsg_char driver */
 	printf("\r\nMaster>probe rpmsg_char\r\n");
-	ret = system("modprobe rpmsg_char");
+	ret = system("set -x; lsmod; modprobe rpmsg_char");
 	if (ret < 0) {
 		perror("Failed to load rpmsg_char driver.\n");
 		return -EINVAL;
@@ -329,34 +278,24 @@ int main(int argc, char *argv[])
 	eptinfo.dst = 0xFFFFFFFF;
 	ret = rpmsg_create_ept(charfd, &eptinfo);
 	if (ret) {
-		printf("failed to create RPMsg endpoint.\n");
+		fprintf(stderr, "rpmsg_create_ept %s\n", strerror(errno));
 		return -EINVAL;
 	}
 	if (!get_rpmsg_ept_dev_name(rpmsg_char_name, eptinfo.name,
 				    ept_dev_name))
 		return -EINVAL;
 	sprintf(ept_dev_path, "/dev/%s", ept_dev_name);
+
+	printf("open %s\n", ept_dev_path);
 	fd = open(ept_dev_path, O_RDWR | O_NONBLOCK);
 	if (fd < 0) {
-		perror("Failed to open rpmsg device.");
+		perror(ept_dev_path);
 		close(charfd);
 		return -1;
 	}
 
-	if (pthread_mutex_init(&sync_lock, NULL) != 0)
-		printf("\r\n mutex initialization failure \r\n");
-
-	pthread_mutex_lock(&sync_lock);
-
-	printf("\r\n Creating ui_thread and compute_thread ... \r\n");
-
-	pthread_create(&ui_thread, NULL, &ui_thread_entry, "ui_thread");
-
-	pthread_create(&compute_thread, NULL, &compute_thread_entry,
-				"compute_thread");
-	pthread_join(ui_thread, NULL);
-
-	pthread_join(compute_thread, NULL);
+	printf("%s:%d matrix_mult(%d)\n", __func__, __LINE__, ntimes);
+	matrix_mult(ntimes);
 
 	close(fd);
 	if (charfd >= 0)
@@ -364,8 +303,6 @@ int main(int argc, char *argv[])
 
 	printf("\r\n Quitting application .. \r\n");
 	printf(" Matrix multiply application end \r\n");
-
-	pthread_mutex_destroy(&sync_lock);
 
 	return 0;
 }

@@ -34,21 +34,43 @@ SOC_FAMILY_ARCH ??= "${TUNE_PKGARCH}"
 PACKAGE_ARCH = "${SOC_FAMILY_ARCH}"
 
 CFLAGS_versal += " -Dversal "
+
+
+# by default enable proxy apps
+OPENAMP_PROXY ?= "1"
+
+# by default use IPI for polling
+OPENAMP_SHMEM_POLL ?= "0"
+
 # OpenAMP apps not ready for Zynq
-EXTRA_OECMAKE:append_zynqmp = "-DWITH_APPS=ON -DWITH_PROXY=on -DWITH_PROXY_APPS=on "
-EXTRA_OECMAKE:append_versal = "-DWITH_APPS=ON -DWITH_PROXY=on -DWITH_PROXY_APPS=on "
+EXTRA_OECMAKE_append_zynqmp = "-DWITH_APPS=ON "
+EXTRA_OECMAKE_append_versal = "-DWITH_APPS=ON "
 
-ALLOW_EMPTY:${PN}-demos = "1"
-PACKAGES:append += "${PN}-demos"
+EXTRA_OECMAKE_append = " ${@'-DWITH_PROXY=on -DWITH_PROXY_APPS=on' if d.getVar('OPENAMP_PROXY') == '1' else ''}"
 
-FILES:${PN} = " \
+#set rpmsg no ipi if applicable
+python rpmsg_no_ipi_setup() {
+    if d.getVar("OPENAMP_SHMEM_POLL") == "1":
+        toolchain_file_path = d.getVar("WORKDIR") + "/toolchain.cmake"
+        toolchain_file = open(toolchain_file_path, "a") # a for append
+        toolchain_file.write(" add_definitions(\" -DRPMSG_NO_IPI=ON \") ")
+}
+
+
+# only add definition after toolchain file has been generated
+do_generate_toolchain_file[postfuncs] += "rpmsg_no_ipi_setup"
+
+ALLOW_EMPTY_${PN}-demos = "1"
+PACKAGES_append += "${PN}-demos"
+
+FILES_${PN} = " \
     ${libdir}/*.so* \
 "
 
-FILES:${PN}-demos = " \
+FILES_${PN}-demos = " \
     ${bindir}/*-shared \
 "
-do_install:append () {
+do_install_append () {
 	# Only install echo test client, matrix multiplication client,
 	# and proxy app server for ZynqMP
 	rm -rf ${D}/${bindir}/*-static
