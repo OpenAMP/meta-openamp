@@ -18,7 +18,7 @@ PROVIDES = "openamp"
 
 inherit pkgconfig cmake yocto-cmake-translation
 
-OPENAMP_MACHINE_versal = "zynqmp"
+OPENAMP_MACHINE:versal = "zynqmp"
 OPENAMP_MACHINE ?= "${@get_cmake_machine(d.getVar('TARGET_OS'), d.getVar('TUNE_ARCH'), d.getVar('SOC_FAMILY'), d)}"
 EXTRA_OECMAKE = " \
 	-DLIB_INSTALL_DIR=${libdir} \
@@ -29,22 +29,22 @@ EXTRA_OECMAKE = " \
 SOC_FAMILY_ARCH ??= "${TUNE_PKGARCH}"
 PACKAGE_ARCH = "${SOC_FAMILY_ARCH}"
 
-CFLAGS_versal += " -Dversal -O1 "
+CFLAGS:versal += " -Dversal -O1 "
 # OpenAMP apps not ready for Zynq
-EXTRA_OECMAKE_append_zynqmp = "-DWITH_APPS=ON -DWITH_PROXY=on -DWITH_PROXY_APPS=on "
-EXTRA_OECMAKE_append_versal = "-DWITH_APPS=ON -DWITH_PROXY=on -DWITH_PROXY_APPS=on "
+EXTRA_OECMAKE:append:zynqmp = "-DWITH_APPS=ON -DWITH_PROXY=on -DWITH_PROXY_APPS=on "
+EXTRA_OECMAKE:append:versal = "-DWITH_APPS=ON -DWITH_PROXY=on -DWITH_PROXY_APPS=on "
 
-ALLOW_EMPTY_${PN}-demos = "1"
-PACKAGES_append += "${PN}-demos"
+ALLOW_EMPTY:${PN}-demos = "1"
+PACKAGES:append += "${PN}-demos"
 
-FILES_${PN} = " \
+FILES:${PN} = " \
     ${libdir}/*.so* \
 "
 
-FILES_${PN}-demos = " \
+FILES:${PN}-demos = " \
     ${bindir}/*-shared \
 "
-do_install_append () {
+do_install:append () {
 	# Only install echo test client, matrix multiplication client,
 	# and proxy app server for ZynqMP
 	rm -rf ${D}/${bindir}/*-static
@@ -53,9 +53,9 @@ do_install_append () {
 
 
 
-DEPENDS_append = " lopper-native  "
-FILESEXTRAPATHS_append := ":${THISDIR}/overlays"
-SRC_URI_append = " \
+DEPENDS:append = " lopper-native  "
+FILESEXTRAPATHS:append := ":${THISDIR}/overlays"
+SRC_URI:append = " \
      file://openamp-overlay-kernel.yaml \
           "
 
@@ -71,8 +71,8 @@ OVERLAY ?= "${S}/../openamp-overlay-kernel.yaml"
 CHANNEL_INFO_FILE = "openamp-channel-info.txt"
 LOPPER_OPENAMP_OUT_DTB = "${WORKDIR}/openamp-lopper-output.dtb"
 
-LINUX_CORE_versal = "a72"
-LINUX_CORE_zynqmp = "a53"
+LINUX_CORE:versal = "a72"
+LINUX_CORE:zynqmp = "a53"
 
 OPENAMP_LOPPER_INPUTS_linux = " \
     -i ${LOPS_DIR}/lop-${LINUX_CORE}-imux.dts \

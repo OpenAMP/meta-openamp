@@ -1,6 +1,6 @@
 LICENSE = "BSD"
 LIC_FILES_CHKSUM = "file://LICENSE.md;md5=0e6d7bfe689fe5b0d0a89b2ccbe053fa"
-SRC_URI_armrm_xilinx-standalone = "git://gitenterprise.xilinx.com/OpenAMP/open-amp.git;branch=xlnx_decoupling"
+SRC_URI:armrm_xilinx-standalone = "git://gitenterprise.xilinx.com/OpenAMP/open-amp.git;branch=xlnx_decoupling"
 
 SRCREV = "0720f88f065f11d2223cde4c790a7f35bbcc098a"
 
@@ -8,18 +8,18 @@ S = "${WORKDIR}/git"
 B = "${WORKDIR}/build"
 OECMAKE_SOURCEPATH = "${S}/"
 PROVIDES = "openamp"
-DEPENDS_armrm_xilinx-standalone += " libmetal xilstandalone python3-pyyaml-native lopper-native python3-dtc-native  nativesdk-xilinx-lops "
+DEPENDS:armrm_xilinx-standalone += " libmetal xilstandalone python3-pyyaml-native lopper-native python3-dtc-native  nativesdk-xilinx-lops "
 DTS_FILE = "/scratch/decoupling/lopper/lopper-sdt.dtb"
-FILESEXTRAPATHS_append := ":${THISDIR}/overlays"
-SRC_URI_append = " \
+FILESEXTRAPATHS:append := ":${THISDIR}/overlays"
+SRC_URI:append = " \
      file://openamp-overlay-kernel.yaml \
      "
 
 inherit cmake deploy
 # We need the deployed output
-do_configure_armrm_xilinx-standalone[depends] += "device-tree-lops:do_deploy lopper-native:do_install"
-do_compile_armrm_xilinx-standalone[depends] += "device-tree-lops:do_deploy"
-do_install_armrm_xilinx-standalone[depends] += "device-tree-lops:do_deploy"
+do_configure:armrm_xilinx-standalone[depends] += "device-tree-lops:do_deploy lopper-native:do_install"
+do_compile:armrm_xilinx-standalone[depends] += "device-tree-lops:do_deploy"
+do_install:armrm_xilinx-standalone[depends] += "device-tree-lops:do_deploy"
 
 BB_STRICT_CHECKSUM = "0"
 
@@ -30,16 +30,16 @@ EXTRA_OECMAKE = " \
        "
 
 COMPATIBLE_HOST = ".*-elf"
-COMPATIBLE_HOST_arm = "[^-]*-[^-]*-eabi"
+COMPATIBLE_HOST:arm = "[^-]*-[^-]*-eabi"
 
-OPENAMP_CMAKE_MACHINE_versal = "Versal"
-OPENAMP_CMAKE_MACHINE_zynqmp = "Zynqmp"
+OPENAMP_CMAKE_MACHINE:versal = "Versal"
+OPENAMP_CMAKE_MACHINE:zynqmp = "Zynqmp"
 
 def get_cross_prefix(oe_cmake_c_compiler):
   if oe_cmake_c_compiler == 'arm-xilinx-eabi-gcc':
     return 'arm-xilinx-eabi-'
 
-OPENAMP_CROSS_PREFIX_armrm_xilinx-standalone = "${@get_cross_prefix(d.getVar('OECMAKE_C_COMPILER'))}"
+OPENAMP_CROSS_PREFIX:armrm_xilinx-standalone = "${@get_cross_prefix(d.getVar('OECMAKE_C_COMPILER'))}"
 
 def get_openamp_machine(soc_family):
   if soc_family in ['versal']:
@@ -50,14 +50,14 @@ def get_openamp_machine(soc_family):
 OPENAMP_MACHINE = "${@get_openamp_machine(d.getVar('SOC_FAMILY'))}"
 
 
-ALLOW_EMPTY_${PN}-demos = "1"
-PACKAGES_append += "${PN}-demos"
-EXTRA_OECMAKE_append = "-DWITH_APPS=ON "
+ALLOW_EMPTY:${PN}-demos = "1"
+PACKAGES:append += "${PN}-demos"
+EXTRA_OECMAKE:append = "-DWITH_APPS=ON "
 
-REQUIRED_DISTRO_FEATURES_armrm_xilinx-standalone = "${DISTRO_FEATURES}"
-PACKAGECONFIG_armrm_xilinx-standalone ?= "${DISTRO_FEATURES} ${MACHINE_FEATURES}"
+REQUIRED_DISTRO_FEATURES:armrm_xilinx-standalone = "${DISTRO_FEATURES}"
+PACKAGECONFIG:armrm_xilinx-standalone ?= "${DISTRO_FEATURES} ${MACHINE_FEATURES}"
 
-FILES_${PN}-demos_armrm_xilinx-standalone = " \
+FILES:${PN}-demos:armrm_xilinx-standalone = " \
     ${base_libdir}/firmware/*\.out \
 "
 
@@ -66,10 +66,10 @@ OVERLAY ?= "${S}/../openamp-overlay-kernel.yaml"
 
 CHANNEL_INFO_FILE = "openamp-channel-info.txt"
 
-PACKAGE_DEBUG_SPLIT_STYLE_armrm_xilinx-standalone='debug-file-directory'
-INHIBIT_PACKAGE_STRIP_armrm_xilinx-standalone = '1'
-INHIBIT_PACKAGE_DEBUG_SPLIT_armrm_xilinx-standalone = '1'
-PACKAGE_MINIDEBUGINFO_armrm_xilinx-standalone = '1'
+PACKAGE_DEBUG_SPLIT_STYLE:armrm_xilinx-standalone='debug-file-directory'
+INHIBIT_PACKAGE_STRIP:armrm_xilinx-standalone = '1'
+INHIBIT_PACKAGE_DEBUG_SPLIT:armrm_xilinx-standalone = '1'
+PACKAGE_MINIDEBUGINFO:armrm_xilinx-standalone = '1'
 
 do_run_lopper() {
     cd ${WORKDIR}
@@ -91,7 +91,7 @@ addtask run_lopper before do_generate_toolchain_file
 addtask run_lopper after do_prepare_recipe_sysroot
 
 
-SELECTED_OPTIMIZATION_armrm_xilinx-standalone = " -g "
+SELECTED_OPTIMIZATION:armrm_xilinx-standalone = " -g "
 
 python do_set_openamp_cmake_vars() {
     def parse_channel_info( val, d ):

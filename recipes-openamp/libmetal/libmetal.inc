@@ -17,15 +17,15 @@ SRC_URI = "${REPO};${BRANCHARG}"
 S = "${WORKDIR}/git"
 
 # if user want to enable hugetlbfs support, please
-# add "DEPENDS_append_pn-libmetal = " libhugetlbfs "" to your local.conf
+# add "DEPENDS:append:pn-libmetal = " libhugetlbfs "" to your local.conf
 DEPENDS = "sysfsutils ${@bb.utils.contains('DISTRO_FEATURES', 'systemd', 'udev', 'eudev', d)}"
-RDEPENDS_${PN}_append_aarch64_linux = " libudev"
+RDEPENDS:${PN}:append:aarch64_linux = " libudev"
 
 PROVIDES = "libmetal"
 
 inherit pkgconfig cmake yocto-cmake-translation
 
-LIBMETAL_MACHINE_versal = "zynqmp"
+LIBMETAL_MACHINE:versal = "zynqmp"
 LIBMETAL_MACHINE ?= "${@get_cmake_machine(d.getVar('TARGET_OS'), d.getVar('TUNE_ARCH'), d.getVar('SOC_FAMILY'), d)}"
 
 SOC_FAMILY_ARCH ??= "${TUNE_PKGARCH}"
@@ -39,23 +39,23 @@ EXTRA_OECMAKE = " \
 	-DSOC_FAMILY="${SOC_FAMILY}" \
 	"
 
-EXTRA_OECMAKE_append_zynqmp = " -DWITH_VFIO=on"
-EXTRA_OECMAKE_append_versal = " -DWITH_VFIO=on"
+EXTRA_OECMAKE:append:zynqmp = " -DWITH_VFIO=on"
+EXTRA_OECMAKE:append:versal = " -DWITH_VFIO=on"
 
-ALLOW_EMPTY_${PN}-demos = "1"
+ALLOW_EMPTY:${PN}-demos = "1"
 
-PACKAGES_append += "${PN}-demos"
+PACKAGES:append += "${PN}-demos"
 
-FILES_${PN} = " \
+FILES:${PN} = " \
     ${libdir}/*.so* \
     ${bindir}/test-* \
 "
-FILES_${PN}-demos = " \
+FILES:${PN}-demos = " \
     ${bindir}/libmetal_* \
     ${bindir}/*demo \
 "
 
-do_install_append () {
+do_install:append () {
 	# Only install the shared lib binaries
 	rm -rf ${D}/${bindir}/*-static
 
