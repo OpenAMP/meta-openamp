@@ -62,7 +62,7 @@ SRC_URI_append = " \
 # We need the deployed output
 do_configure[depends] += " lopper-native:do_install"
 
-PROVIDES = "openamp"
+PROVIDES = "openamp open-amp"
 
 inherit pkgconfig cmake yocto-cmake-translation
 

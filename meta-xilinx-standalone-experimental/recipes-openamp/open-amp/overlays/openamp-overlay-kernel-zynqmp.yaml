@@ -1,0 +1,52 @@
+resource_groups:
+    resource_group0:
+        compatible:
+            - "openamp,remoteproc-v1"
+            - "openamp,group-v1"
+        memory:
+            # order is elf load, vring0, vring1, shared buffers
+            - start: 0x3ed00000
+              size: 0x40000
+            - start: 0x3ed40000
+              size: 0x4000
+            - start: 0x3ed44000
+              size: 0x4000
+            - start: 0x3ed48000
+              size: 0x100000
+        access:
+            - dev: psu_r5_0_atcm_global
+              flags: 0 # flags is required. put 0 to denote this is not used.
+            - dev: psu_r5_0_btcm_global
+              flags: 0 # flags is required. put 0 to denote this is not used.
+        openamp-xlnx-kernel: true # if true, then use kernel driver. false, use native OpenAMP impl.
+domains:
+    openamp_r5_0:
+      compatible:
+         - "openamp,domain-v1"
+      cpus:
+         - cluster: cpus_r5
+           cpumask: 0x1
+           mode:
+               secure: false
+               el: 0x3
+      include: 
+          - resource_group0
+      access:
+          - dev: ipi1
+            flags: 0x13
+
+    openamp_a72_cluster:
+       compatible:
+           - "openamp,domain-v1"
+       cpus:
+           - cluster: cpus_a72
+             cpumask: 0x3
+             mode:
+                 secure: true
+                 el: 0x3
+       include: 
+           - resource_group0
+       openamp-host: true # if present and true, then this is host in OpenAMP Channel
+       access:
+           - dev: ipi7
+             flags: 0x13

@@ -9,11 +9,10 @@ B = "${WORKDIR}/build"
 OECMAKE_SOURCEPATH = "${S}/"
 PROVIDES = "openamp"
 DEPENDS_armrm_xilinx-standalone += " libmetal xilstandalone python3-pyyaml-native lopper-native python3-dtc-native  nativesdk-xilinx-lops "
-DTS_FILE = "/scratch/decoupling/lopper/lopper-sdt.dtb"
 FILESEXTRAPATHS_append := ":${THISDIR}/overlays"
-SRC_URI_append = " \
-     file://openamp-overlay-kernel.yaml \
-     "
+#SRC_URI_versal_append = "    file://openamp-overlay-kernel-versal.yaml  "
+#SRC_URI_zynqmp_append = "    file://openamp-overlay-kernel-zynqmp.yaml  "
+SRC_URI_append = " file://openamp-overlay-kernel-${SOC_FAMILY}.yaml "
 
 inherit cmake deploy
 # We need the deployed output
@@ -42,7 +41,7 @@ def get_cross_prefix(oe_cmake_c_compiler):
 OPENAMP_CROSS_PREFIX_armrm_xilinx-standalone = "${@get_cross_prefix(d.getVar('OECMAKE_C_COMPILER'))}"
 
 def get_openamp_machine(soc_family):
-  if soc_family in ['versal']:
+  if soc_family in ['versal', 'zynqmp']:
     return 'zynqmp_r5'
   return ''
 
@@ -62,7 +61,8 @@ FILES_${PN}-demos_armrm_xilinx-standalone = " \
 "
 
 LOPS_DIR="${RECIPE_SYSROOT_NATIVE}/usr/share/lopper/lops/"
-OVERLAY ?= "${S}/../openamp-overlay-kernel.yaml"
+OVERLAY_zynqmp ?= "${S}/../openamp-overlay-kernel-zynqmp.yaml"
+OVERLAY_versal ?= "${S}/../openamp-overlay-kernel-versal.yaml"
 
 CHANNEL_INFO_FILE = "openamp-channel-info.txt"
 
