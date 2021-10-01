@@ -1,6 +1,6 @@
 require ${LAYER_PATH_openamp-layer}/recipes-openamp/libmetal/libmetal.inc
 
-SRCREV = "7e6ac3f659724204fd5917952fafb74478c39e43"
+SRCREV = "c014e1eacd0164a44336ff727fe2e91aa6c062b6"
 S = "${WORKDIR}/git"
 B = "${WORKDIR}/build"
 
@@ -9,6 +9,7 @@ SRC_URI_armrm_xilinx-standalone = "git://gitenterprise.xilinx.com/OpenAMP/libmet
 OECMAKE_SOURCEPATH = "${S}/"
 PROVIDES_armrm_xilinx-standalone = "libmetal "
 DEPENDS_armrm_xilinx-standalone += " libxil scugic doxygen-native xilstandalone"
+RDEPENDS_${PN} = ""
 inherit cmake
 LICENSE = "BSD"
 LIC_FILES_CHKSUM = "file://LICENSE.md;md5=1ff609e96fc79b87da48a837cbe5db33"
@@ -42,7 +43,7 @@ def get_cross_prefix(oe_cmake_c_compiler):
 LIBMETAL_CROSS_PREFIX_armrm_xilinx-standalone = "${@get_cross_prefix(d.getVar('OECMAKE_C_COMPILER'))}"
 
 def get_libmetal_machine(soc_family):
-  if soc_family in ['versal']:
+  if soc_family in ['versal', 'zynqmp']:
     return 'zynqmp_r5'
   return ''
 
