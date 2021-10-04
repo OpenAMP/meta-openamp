@@ -4,7 +4,7 @@ SRCREV = "c014e1eacd0164a44336ff727fe2e91aa6c062b6"
 S = "${WORKDIR}/git"
 B = "${WORKDIR}/build"
 
-SRC_URI_armrm_xilinx-standalone = "git://gitenterprise.xilinx.com/OpenAMP/libmetal.git;branch=experimental_dt"
+BRANCH_armrm_xilinx-standalone = "experimental_dt"
 
 OECMAKE_SOURCEPATH = "${S}/"
 PROVIDES_armrm_xilinx-standalone = "libmetal "
