@@ -90,7 +90,7 @@ do_run_lopper() {
 
     ${LOPS_DIR}/../lopper.py -f -v --enhanced  --permissive \
     ${OPENAMP_LOPPER_INPUTS} \
-    ${SYSTEM_DTFILE} \
+    ${SYSTEM_DTFILE_OPENAMP} \
     ${LOPPER_OPENAMP_OUT_DTB}
 
     cd -

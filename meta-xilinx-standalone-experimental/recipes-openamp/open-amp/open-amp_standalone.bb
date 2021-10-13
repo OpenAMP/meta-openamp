@@ -79,7 +79,7 @@ do_run_lopper() {
     -i ${LOPS_DIR}/lop-xlate-yaml.dts \
     -i ${LOPS_DIR}/lop-load.dts \
     -i ${LOPS_DIR}/lop-openamp-versal.dts \
-    ${SYSTEM_DTFILE} \
+    ${SYSTEM_DTFILE_OPENAMP} \
     ${WORKDIR}/openamp-lopper-output.dts
 
     # old SDT /scratch/decoupling/lopper/lopper-sdt.dts
