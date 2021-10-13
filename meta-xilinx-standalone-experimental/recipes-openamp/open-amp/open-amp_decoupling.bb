@@ -51,8 +51,7 @@ do_install_append () {
 	rm -rf ${D}/${bindir}/*-static
 }
 
-
-
+SOC_FAMILY ??= "none"
 
 DEPENDS_append = " lopper-native  "
 FILESEXTRAPATHS_append := ":${THISDIR}/overlays"
