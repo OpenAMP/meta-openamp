@@ -7,7 +7,7 @@ SECTION = "libs"
 LICENSE = "BSD"
 LIC_FILES_CHKSUM ?= "file://LICENSE.md;md5=0e6d7bfe689fe5b0d0a89b2ccbe053fa"
 
-SRC_URI = "git://gitenterprise.xilinx.com/OpenAMP/open-amp.git;protocol=https;branch=xlnx_decoupling"
+SRC_URI = "git://github.com/Xilinx/open-amp.git;protocol=https;branch=experimental_dt"
 SRCREV = "0720f88f065f11d2223cde4c790a7f35bbcc098a"
 
 S = "${WORKDIR}/git"
@@ -29,7 +29,8 @@ EXTRA_OECMAKE = " \
 SOC_FAMILY_ARCH ??= "${TUNE_PKGARCH}"
 PACKAGE_ARCH = "${SOC_FAMILY_ARCH}"
 
-CFLAGS_versal += " -Dversal -O1 "
+CFLAGS += "  -O1 "
+CFLAGS_versal += " -Dversal "
 # OpenAMP apps not ready for Zynq
 EXTRA_OECMAKE_append_zynqmp = "-DWITH_APPS=ON -DWITH_PROXY=on -DWITH_PROXY_APPS=on "
 EXTRA_OECMAKE_append_versal = "-DWITH_APPS=ON -DWITH_PROXY=on -DWITH_PROXY_APPS=on "
@@ -56,31 +57,34 @@ do_install_append () {
 DEPENDS_append = " lopper-native  "
 FILESEXTRAPATHS_append := ":${THISDIR}/overlays"
 SRC_URI_append = " \
-     file://openamp-overlay-kernel.yaml \
+     file://openamp-overlay-kernel-${SOC_FAMILY}.yaml \
           "
 
 # We need the deployed output
 do_configure[depends] += " lopper-native:do_install"
 
-PROVIDES = "openamp"
+PROVIDES = "openamp open-amp"
 
 inherit pkgconfig cmake yocto-cmake-translation
 
 LOPS_DIR="${RECIPE_SYSROOT_NATIVE}/usr/share/lopper/lops/"
-OVERLAY ?= "${S}/../openamp-overlay-kernel.yaml"
+OVERLAY ?= "${S}/../openamp-overlay-kernel-${SOC_FAMILY}.yaml"
 CHANNEL_INFO_FILE = "openamp-channel-info.txt"
 LOPPER_OPENAMP_OUT_DTB = "${WORKDIR}/openamp-lopper-output.dtb"
 
-LINUX_CORE_versal = "a72"
-LINUX_CORE_zynqmp = "a53"
+LINUX_IMUX_TARGET_versal = "a72"
+LINUX_DOMAIN_TARGET_versal = "a72"
+
+LINUX_IMUX_TARGET_zynqmp = "a53"
+LINUX_DOMAIN_TARGET_zynqmp = "linux-a53"
 
 OPENAMP_LOPPER_INPUTS_linux = " \
-    -i ${LOPS_DIR}/lop-${LINUX_CORE}-imux.dts \
+    -i ${LOPS_DIR}/lop-${LINUX_IMUX_TARGET}-imux.dts \
     -i ${OVERLAY} \
     -i ${LOPS_DIR}/lop-xlate-yaml.dts \
     -i ${LOPS_DIR}/lop-load.dts \
     -i ${LOPS_DIR}/lop-openamp-versal.dts \
-    -i ${LOPS_DIR}/lop-domain-${LINUX_CORE}.dts "
+    -i ${LOPS_DIR}/lop-domain-${LINUX_DOMAIN_TARGET}.dts "
 
 do_run_lopper() {
     cd ${WORKDIR}
