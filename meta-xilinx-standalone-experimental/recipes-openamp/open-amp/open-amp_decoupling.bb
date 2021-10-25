@@ -51,8 +51,7 @@ do_install_append () {
 	rm -rf ${D}/${bindir}/*-static
 }
 
-
-
+SOC_FAMILY ??= "none"
 
 DEPENDS_append = " lopper-native  "
 FILESEXTRAPATHS_append := ":${THISDIR}/overlays"
@@ -91,7 +90,7 @@ do_run_lopper() {
 
     ${LOPS_DIR}/../lopper.py -f -v --enhanced  --permissive \
     ${OPENAMP_LOPPER_INPUTS} \
-    ${SYSTEM_DTFILE} \
+    ${SYSTEM_DTFILE_OPENAMP} \
     ${LOPPER_OPENAMP_OUT_DTB}
 
     cd -
