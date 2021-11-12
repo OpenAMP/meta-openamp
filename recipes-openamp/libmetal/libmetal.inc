@@ -19,7 +19,7 @@ S = "${WORKDIR}/git"
 # if user want to enable hugetlbfs support, please
 # add "DEPENDS:append:pn-libmetal = " libhugetlbfs "" to your local.conf
 DEPENDS = "sysfsutils ${@bb.utils.contains('DISTRO_FEATURES', 'systemd', 'udev', 'eudev', d)}"
-RDEPENDS:${PN}:append:aarch64_linux = " libudev"
+RDEPENDS:${PN}:append:aarch64:linux = " libudev"
 
 PROVIDES = "libmetal"
 

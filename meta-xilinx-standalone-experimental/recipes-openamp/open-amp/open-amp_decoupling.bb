@@ -74,7 +74,7 @@ LOPPER_OPENAMP_OUT_DTB = "${WORKDIR}/openamp-lopper-output.dtb"
 LINUX_CORE:versal = "a72"
 LINUX_CORE:zynqmp = "a53"
 
-OPENAMP_LOPPER_INPUTS_linux = " \
+OPENAMP_LOPPER_INPUTS:linux = " \
     -i ${LOPS_DIR}/lop-${LINUX_CORE}-imux.dts \
     -i ${OVERLAY} \
     -i ${LOPS_DIR}/lop-xlate-yaml.dts \
@@ -96,8 +96,8 @@ do_run_lopper() {
 addtask run_lopper before do_generate_toolchain_file
 addtask run_lopper after do_prepare_recipe_sysroot
 
-OPENAMP_HOST_standalone = "0"
-OPENAMP_HOST_linux = "1"
+OPENAMP_HOST:standalone = "0"
+OPENAMP_HOST:linux = "1"
 
 python do_set_openamp_cmake_vars() {
     def parse_channel_info( val, d ):

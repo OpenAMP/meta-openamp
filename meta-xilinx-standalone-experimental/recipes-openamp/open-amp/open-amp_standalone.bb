@@ -1,6 +1,6 @@
 LICENSE = "BSD"
 LIC_FILES_CHKSUM = "file://LICENSE.md;md5=0e6d7bfe689fe5b0d0a89b2ccbe053fa"
-SRC_URI:armrm_xilinx-standalone = "git://gitenterprise.xilinx.com/OpenAMP/open-amp.git;branch=xlnx_decoupling"
+SRC_URI:armrm:xilinx-standalone = "git://gitenterprise.xilinx.com/OpenAMP/open-amp.git;branch=xlnx_decoupling"
 
 SRCREV = "0720f88f065f11d2223cde4c790a7f35bbcc098a"
 
@@ -8,7 +8,7 @@ S = "${WORKDIR}/git"
 B = "${WORKDIR}/build"
 OECMAKE_SOURCEPATH = "${S}/"
 PROVIDES = "openamp"
-DEPENDS:armrm_xilinx-standalone += " libmetal xilstandalone python3-pyyaml-native lopper-native python3-dtc-native  nativesdk-xilinx-lops "
+DEPENDS:armrm:xilinx-standalone += " libmetal xilstandalone python3-pyyaml-native lopper-native python3-dtc-native  nativesdk-xilinx-lops "
 DTS_FILE = "/scratch/decoupling/lopper/lopper-sdt.dtb"
 FILESEXTRAPATHS:append := ":${THISDIR}/overlays"
 SRC_URI:append = " \
@@ -17,9 +17,9 @@ SRC_URI:append = " \
 
 inherit cmake deploy
 # We need the deployed output
-do_configure:armrm_xilinx-standalone[depends] += "device-tree-lops:do_deploy lopper-native:do_install"
-do_compile:armrm_xilinx-standalone[depends] += "device-tree-lops:do_deploy"
-do_install:armrm_xilinx-standalone[depends] += "device-tree-lops:do_deploy"
+do_configure:armrm:xilinx-standalone[depends] += "device-tree-lops:do_deploy lopper-native:do_install"
+do_compile:armrm:xilinx-standalone[depends] += "device-tree-lops:do_deploy"
+do_install:armrm:xilinx-standalone[depends] += "device-tree-lops:do_deploy"
 
 BB_STRICT_CHECKSUM = "0"
 
@@ -39,7 +39,7 @@ def get_cross_prefix(oe_cmake_c_compiler):
   if oe_cmake_c_compiler == 'arm-xilinx-eabi-gcc':
     return 'arm-xilinx-eabi-'
 
-OPENAMP_CROSS_PREFIX:armrm_xilinx-standalone = "${@get_cross_prefix(d.getVar('OECMAKE_C_COMPILER'))}"
+OPENAMP_CROSS_PREFIX:armrm:xilinx-standalone = "${@get_cross_prefix(d.getVar('OECMAKE_C_COMPILER'))}"
 
 def get_openamp_machine(soc_family):
   if soc_family in ['versal']:
@@ -54,10 +54,10 @@ ALLOW_EMPTY:${PN}-demos = "1"
 PACKAGES:append += "${PN}-demos"
 EXTRA_OECMAKE:append = "-DWITH_APPS=ON "
 
-REQUIRED_DISTRO_FEATURES:armrm_xilinx-standalone = "${DISTRO_FEATURES}"
-PACKAGECONFIG:armrm_xilinx-standalone ?= "${DISTRO_FEATURES} ${MACHINE_FEATURES}"
+REQUIRED_DISTRO_FEATURES:armrm:xilinx-standalone = "${DISTRO_FEATURES}"
+PACKAGECONFIG:armrm:xilinx-standalone ?= "${DISTRO_FEATURES} ${MACHINE_FEATURES}"
 
-FILES:${PN}-demos:armrm_xilinx-standalone = " \
+FILES:${PN}-demos:armrm:xilinx-standalone = " \
     ${base_libdir}/firmware/*\.out \
 "
 
@@ -66,10 +66,10 @@ OVERLAY ?= "${S}/../openamp-overlay-kernel.yaml"
 
 CHANNEL_INFO_FILE = "openamp-channel-info.txt"
 
-PACKAGE_DEBUG_SPLIT_STYLE:armrm_xilinx-standalone='debug-file-directory'
-INHIBIT_PACKAGE_STRIP:armrm_xilinx-standalone = '1'
-INHIBIT_PACKAGE_DEBUG_SPLIT:armrm_xilinx-standalone = '1'
-PACKAGE_MINIDEBUGINFO:armrm_xilinx-standalone = '1'
+PACKAGE_DEBUG_SPLIT_STYLE:armrm:xilinx-standalone='debug-file-directory'
+INHIBIT_PACKAGE_STRIP:armrm:xilinx-standalone = '1'
+INHIBIT_PACKAGE_DEBUG_SPLIT:armrm:xilinx-standalone = '1'
+PACKAGE_MINIDEBUGINFO:armrm:xilinx-standalone = '1'
 
 do_run_lopper() {
     cd ${WORKDIR}
@@ -91,7 +91,7 @@ addtask run_lopper before do_generate_toolchain_file
 addtask run_lopper after do_prepare_recipe_sysroot
 
 
-SELECTED_OPTIMIZATION:armrm_xilinx-standalone = " -g "
+SELECTED_OPTIMIZATION:armrm:xilinx-standalone = " -g "
 
 python do_set_openamp_cmake_vars() {
     def parse_channel_info( val, d ):
