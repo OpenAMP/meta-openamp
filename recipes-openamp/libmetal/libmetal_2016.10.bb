@@ -4,6 +4,6 @@ LIC_FILES_CHKSUM = "file://LICENSE.md;md5=395307789d21fd8945fc1c933cad18b5"
 
 include libmetal.inc
 
-SRC_URI_append = " \
+SRC_URI:append = " \
 	file://0001-linux-uio-dev-open-dev-file-only-if-it-exists.patch;patch=1 \
 	"

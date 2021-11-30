@@ -7,7 +7,7 @@ SECTION = "libs"
 LICENSE = "BSD"
 LIC_FILES_CHKSUM ?= "file://LICENSE.md;md5=0e6d7bfe689fe5b0d0a89b2ccbe053fa"
 
-SRC_URI = "git://github.com/Xilinx/open-amp.git;protocol=https;branch=experimental_dt"
+SRC_URI = "git://gitenterprise.xilinx.com/OpenAMP/open-amp.git;protocol=https;branch=xlnx_decoupling"
 SRCREV = "0720f88f065f11d2223cde4c790a7f35bbcc098a"
 
 S = "${WORKDIR}/git"
@@ -18,7 +18,7 @@ PROVIDES = "openamp"
 
 inherit pkgconfig cmake yocto-cmake-translation
 
-OPENAMP_MACHINE_versal = "zynqmp"
+OPENAMP_MACHINE:versal = "zynqmp"
 OPENAMP_MACHINE ?= "${@get_cmake_machine(d.getVar('TARGET_OS'), d.getVar('TUNE_ARCH'), d.getVar('SOC_FAMILY'), d)}"
 EXTRA_OECMAKE = " \
 	-DLIB_INSTALL_DIR=${libdir} \
@@ -29,68 +29,65 @@ EXTRA_OECMAKE = " \
 SOC_FAMILY_ARCH ??= "${TUNE_PKGARCH}"
 PACKAGE_ARCH = "${SOC_FAMILY_ARCH}"
 
-CFLAGS += "  -O1 "
-CFLAGS_versal += " -Dversal "
+CFLAGS:versal += " -Dversal -O1 "
 # OpenAMP apps not ready for Zynq
-EXTRA_OECMAKE_append_zynqmp = "-DWITH_APPS=ON -DWITH_PROXY=on -DWITH_PROXY_APPS=on "
-EXTRA_OECMAKE_append_versal = "-DWITH_APPS=ON -DWITH_PROXY=on -DWITH_PROXY_APPS=on "
+EXTRA_OECMAKE:append:zynqmp = "-DWITH_APPS=ON -DWITH_PROXY=on -DWITH_PROXY_APPS=on "
+EXTRA_OECMAKE:append:versal = "-DWITH_APPS=ON -DWITH_PROXY=on -DWITH_PROXY_APPS=on "
 
-ALLOW_EMPTY_${PN}-demos = "1"
-PACKAGES_append += "${PN}-demos"
+ALLOW_EMPTY:${PN}-demos = "1"
+PACKAGES:append += "${PN}-demos"
 
-FILES_${PN} = " \
+FILES:${PN} = " \
     ${libdir}/*.so* \
 "
 
-FILES_${PN}-demos = " \
+FILES:${PN}-demos = " \
     ${bindir}/*-shared \
 "
-do_install_append () {
+do_install:append () {
 	# Only install echo test client, matrix multiplication client,
 	# and proxy app server for ZynqMP
 	rm -rf ${D}/${bindir}/*-static
 }
 
-SOC_FAMILY ??= "none"
 
-DEPENDS_append = " lopper-native  "
-FILESEXTRAPATHS_append := ":${THISDIR}/overlays"
-SRC_URI_append = " \
-     file://openamp-overlay-kernel-${SOC_FAMILY}.yaml \
+
+
+DEPENDS:append = " lopper-native  "
+FILESEXTRAPATHS:append := ":${THISDIR}/overlays"
+SRC_URI:append = " \
+     file://openamp-overlay-kernel.yaml \
           "
 
 # We need the deployed output
 do_configure[depends] += " lopper-native:do_install"
 
-PROVIDES = "openamp open-amp"
+PROVIDES = "openamp"
 
 inherit pkgconfig cmake yocto-cmake-translation
 
 LOPS_DIR="${RECIPE_SYSROOT_NATIVE}/usr/share/lopper/lops/"
-OVERLAY ?= "${S}/../openamp-overlay-kernel-${SOC_FAMILY}.yaml"
+OVERLAY ?= "${S}/../openamp-overlay-kernel.yaml"
 CHANNEL_INFO_FILE = "openamp-channel-info.txt"
 LOPPER_OPENAMP_OUT_DTB = "${WORKDIR}/openamp-lopper-output.dtb"
 
-LINUX_IMUX_TARGET_versal = "a72"
-LINUX_DOMAIN_TARGET_versal = "a72"
+LINUX_CORE:versal = "a72"
+LINUX_CORE:zynqmp = "a53"
 
-LINUX_IMUX_TARGET_zynqmp = "a53"
-LINUX_DOMAIN_TARGET_zynqmp = "linux-a53"
-
-OPENAMP_LOPPER_INPUTS_linux = " \
-    -i ${LOPS_DIR}/lop-${LINUX_IMUX_TARGET}-imux.dts \
+OPENAMP_LOPPER_INPUTS:linux = " \
+    -i ${LOPS_DIR}/lop-${LINUX_CORE}-imux.dts \
     -i ${OVERLAY} \
     -i ${LOPS_DIR}/lop-xlate-yaml.dts \
     -i ${LOPS_DIR}/lop-load.dts \
     -i ${LOPS_DIR}/lop-openamp-versal.dts \
-    -i ${LOPS_DIR}/lop-domain-${LINUX_DOMAIN_TARGET}.dts "
+    -i ${LOPS_DIR}/lop-domain-${LINUX_CORE}.dts "
 
 do_run_lopper() {
     cd ${WORKDIR}
 
     ${LOPS_DIR}/../lopper.py -f -v --enhanced  --permissive \
     ${OPENAMP_LOPPER_INPUTS} \
-    ${SYSTEM_DTFILE_OPENAMP} \
+    ${SYSTEM_DTFILE} \
     ${LOPPER_OPENAMP_OUT_DTB}
 
     cd -
@@ -99,8 +96,8 @@ do_run_lopper() {
 addtask run_lopper before do_generate_toolchain_file
 addtask run_lopper after do_prepare_recipe_sysroot
 
-OPENAMP_HOST_standalone = "0"
-OPENAMP_HOST_linux = "1"
+OPENAMP_HOST:standalone = "0"
+OPENAMP_HOST:linux = "1"
 
 python do_set_openamp_cmake_vars() {
     def parse_channel_info( val, d ):

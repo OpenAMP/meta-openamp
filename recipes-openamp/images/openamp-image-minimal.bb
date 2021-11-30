@@ -14,7 +14,7 @@ IMAGE_INSTALL += " \
     open-amp \
     "
 
-#IMAGE_INSTALL_append_zynqmp += " kernel-module-zynqmp-r5-remoteproc"
-#IMAGE_INSTALL_append_zynq += " kernel-module-zynq-remoteproc"
+#IMAGE_INSTALL:append:zynqmp += " kernel-module-zynqmp-r5-remoteproc"
+#IMAGE_INSTALL:append:zynq += " kernel-module-zynq-remoteproc"
 
 IMAGE_LINGUAS=""

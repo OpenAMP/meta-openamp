@@ -22,7 +22,7 @@ PROVIDES = "openamp"
 
 inherit pkgconfig cmake yocto-cmake-translation
 
-OPENAMP_MACHINE_versal = "zynqmp"
+OPENAMP_MACHINE:versal = "zynqmp"
 OPENAMP_MACHINE ?= "${@get_cmake_machine(d.getVar('TARGET_OS'), d.getVar('TUNE_ARCH'), d.getVar('SOC_FAMILY'), d)}"
 EXTRA_OECMAKE = " \
 	-DLIB_INSTALL_DIR=${libdir} \
@@ -33,7 +33,7 @@ EXTRA_OECMAKE = " \
 SOC_FAMILY_ARCH ??= "${TUNE_PKGARCH}"
 PACKAGE_ARCH = "${SOC_FAMILY_ARCH}"
 
-CFLAGS_versal += " -Dversal "
+CFLAGS:versal += " -Dversal "
 
 
 # by default enable proxy apps
@@ -43,10 +43,10 @@ OPENAMP_PROXY ?= "1"
 OPENAMP_SHMEM_POLL ?= "0"
 
 # OpenAMP apps not ready for Zynq
-EXTRA_OECMAKE_append_zynqmp = "-DWITH_APPS=ON "
-EXTRA_OECMAKE_append_versal = "-DWITH_APPS=ON "
+EXTRA_OECMAKE:append:zynqmp = "-DWITH_APPS=ON "
+EXTRA_OECMAKE:append:versal = "-DWITH_APPS=ON "
 
-EXTRA_OECMAKE_append = " ${@'-DWITH_PROXY=on -DWITH_PROXY_APPS=on' if d.getVar('OPENAMP_PROXY') == '1' else ''}"
+EXTRA_OECMAKE:append = " ${@'-DWITH_PROXY=on -DWITH_PROXY_APPS=on' if d.getVar('OPENAMP_PROXY') == '1' else ''}"
 
 #set rpmsg no ipi if applicable
 python rpmsg_no_ipi_setup() {
@@ -60,17 +60,17 @@ python rpmsg_no_ipi_setup() {
 # only add definition after toolchain file has been generated
 do_generate_toolchain_file[postfuncs] += "rpmsg_no_ipi_setup"
 
-ALLOW_EMPTY_${PN}-demos = "1"
-PACKAGES_append += "${PN}-demos"
+ALLOW_EMPTY:${PN}-demos = "1"
+PACKAGES:append += "${PN}-demos"
 
-FILES_${PN} = " \
+FILES:${PN} = " \
     ${libdir}/*.so* \
 "
 
-FILES_${PN}-demos = " \
+FILES:${PN}-demos = " \
     ${bindir}/*-shared \
 "
-do_install_append () {
+do_install:append () {
 	# Only install echo test client, matrix multiplication client,
 	# and proxy app server for ZynqMP
 	rm -rf ${D}/${bindir}/*-static

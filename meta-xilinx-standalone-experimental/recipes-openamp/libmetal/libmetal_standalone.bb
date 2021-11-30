@@ -1,56 +1,55 @@
 require ${LAYER_PATH_openamp-layer}/recipes-openamp/libmetal/libmetal.inc
 
-SRCREV = "c014e1eacd0164a44336ff727fe2e91aa6c062b6"
+SRCREV = "7e6ac3f659724204fd5917952fafb74478c39e43"
 S = "${WORKDIR}/git"
 B = "${WORKDIR}/build"
 
-BRANCH_armrm_xilinx-standalone = "experimental_dt"
+SRC_URI:armrm:xilinx-standalone = "git://gitenterprise.xilinx.com/OpenAMP/libmetal.git;branch=xlnx_decoupling"
 
 OECMAKE_SOURCEPATH = "${S}/"
-PROVIDES_armrm_xilinx-standalone = "libmetal "
-DEPENDS_armrm_xilinx-standalone += " libxil scugic doxygen-native xilstandalone"
-RDEPENDS_${PN} = ""
+PROVIDES:armrm:xilinx-standalone = "libmetal "
+DEPENDS:armrm:xilinx-standalone += " libxil scugic doxygen-native xilstandalone"
 inherit cmake
 LICENSE = "BSD"
 LIC_FILES_CHKSUM = "file://LICENSE.md;md5=1ff609e96fc79b87da48a837cbe5db33"
 
-do_configure_armrm_xilinx-standalone[depends] += "device-tree-lops:do_deploy"
+do_configure:armrm:xilinx-standalone[depends] += "device-tree-lops:do_deploy"
 
-EXTRA_OECMAKE_armrm_xilinx-standalone = " \
+EXTRA_OECMAKE:armrm:xilinx-standalone = " \
 	-DLIB_INSTALL_DIR=${libdir} \
 	-DSOC_FAMILY="${SOC_FAMILY}" \
 	-DWITH_EXAMPLES=ON \
 	-DWITH_DOCS=OFF \
 "
 
-ALLOW_EMPTY_${PN}-demos = "1"
+ALLOW_EMPTY:${PN}-demos = "1"
 
-FILES_${PN}-demos_armrm_xilinx-standalone = " \
+FILES:${PN}-demos:armrm:xilinx-standalone = " \
     ${bindir}/libmetal_* \
     ${bindir}/*ocm_demo.elf \
 "
 
 COMPATIBLE_HOST = ".*-elf"
-COMPATIBLE_HOST_arm = "[^-]*-[^-]*-eabi"
+COMPATIBLE_HOST:arm = "[^-]*-[^-]*-eabi"
 
-LIBMETAL_CMAKE_MACHINE_versal = "Versal"
-LIBMETAL_CMAKE_MACHINE_zynqmp = "Zynqmp"
+LIBMETAL_CMAKE_MACHINE:versal = "Versal"
+LIBMETAL_CMAKE_MACHINE:zynqmp = "Zynqmp"
 
 def get_cross_prefix(oe_cmake_c_compiler):
   if oe_cmake_c_compiler == 'arm-xilinx-eabi-gcc':
     return 'arm-xilinx-eabi-'
 
-LIBMETAL_CROSS_PREFIX_armrm_xilinx-standalone = "${@get_cross_prefix(d.getVar('OECMAKE_C_COMPILER'))}"
+LIBMETAL_CROSS_PREFIX:armrm:xilinx-standalone = "${@get_cross_prefix(d.getVar('OECMAKE_C_COMPILER'))}"
 
 def get_libmetal_machine(soc_family):
-  if soc_family in ['versal', 'zynqmp']:
+  if soc_family in ['versal']:
     return 'zynqmp_r5'
   return ''
 
 
-LIBMETAL_MACHINE_armrm_xilinx-standalone = "${@get_libmetal_machine(d.getVar('SOC_FAMILY'))}"
+LIBMETAL_MACHINE:armrm:xilinx-standalone = "${@get_libmetal_machine(d.getVar('SOC_FAMILY'))}"
 
-cmake_do_generate_toolchain_file_armrm_xilinx-standalone_append() {
+cmake_do_generate_toolchain_file:armrm:xilinx-standalone:append() {
     cat >> ${WORKDIR}/toolchain.cmake <<EOF
     set( CMAKE_SYSTEM_PROCESSOR "${TRANSLATED_TARGET_ARCH}" )
     set( MACHINE "${LIBMETAL_MACHINE}" )
