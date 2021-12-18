@@ -4,18 +4,18 @@ SRCREV = "7e6ac3f659724204fd5917952fafb74478c39e43"
 S = "${WORKDIR}/git"
 B = "${WORKDIR}/build"
 
-SRC_URI:armrm:xilinx-standalone = "git://gitenterprise.xilinx.com/OpenAMP/libmetal.git;branch=xlnx_decoupling"
+SRC_URI:armv7r:xilinx-standalone = "git://gitenterprise.xilinx.com/OpenAMP/libmetal.git;branch=xlnx_decoupling"
 
 OECMAKE_SOURCEPATH = "${S}/"
-PROVIDES:armrm:xilinx-standalone = "libmetal "
-DEPENDS:armrm:xilinx-standalone += " libxil scugic doxygen-native xilstandalone"
+PROVIDES:armv7r:xilinx-standalone = "libmetal "
+DEPENDS:armv7r:xilinx-standalone += " libxil scugic doxygen-native xilstandalone"
 inherit cmake
 LICENSE = "BSD"
 LIC_FILES_CHKSUM = "file://LICENSE.md;md5=1ff609e96fc79b87da48a837cbe5db33"
 
-do_configure:armrm:xilinx-standalone[depends] += "device-tree-lops:do_deploy"
+do_configure:armv7r:xilinx-standalone[depends] += "device-tree-lops:do_deploy"
 
-EXTRA_OECMAKE:armrm:xilinx-standalone = " \
+EXTRA_OECMAKE:armv7r:xilinx-standalone = " \
 	-DLIB_INSTALL_DIR=${libdir} \
 	-DSOC_FAMILY="${SOC_FAMILY}" \
 	-DWITH_EXAMPLES=ON \
@@ -24,7 +24,7 @@ EXTRA_OECMAKE:armrm:xilinx-standalone = " \
 
 ALLOW_EMPTY:${PN}-demos = "1"
 
-FILES:${PN}-demos:armrm:xilinx-standalone = " \
+FILES:${PN}-demos:armv7r:xilinx-standalone = " \
     ${bindir}/libmetal_* \
     ${bindir}/*ocm_demo.elf \
 "
@@ -39,7 +39,7 @@ def get_cross_prefix(oe_cmake_c_compiler):
   if oe_cmake_c_compiler == 'arm-xilinx-eabi-gcc':
     return 'arm-xilinx-eabi-'
 
-LIBMETAL_CROSS_PREFIX:armrm:xilinx-standalone = "${@get_cross_prefix(d.getVar('OECMAKE_C_COMPILER'))}"
+LIBMETAL_CROSS_PREFIX:armv7r:xilinx-standalone = "${@get_cross_prefix(d.getVar('OECMAKE_C_COMPILER'))}"
 
 def get_libmetal_machine(soc_family):
   if soc_family in ['versal']:
@@ -47,9 +47,9 @@ def get_libmetal_machine(soc_family):
   return ''
 
 
-LIBMETAL_MACHINE:armrm:xilinx-standalone = "${@get_libmetal_machine(d.getVar('SOC_FAMILY'))}"
+LIBMETAL_MACHINE:armv7r:xilinx-standalone = "${@get_libmetal_machine(d.getVar('SOC_FAMILY'))}"
 
-cmake_do_generate_toolchain_file:armrm:xilinx-standalone:append() {
+cmake_do_generate_toolchain_file:armv7r:xilinx-standalone:append() {
     cat >> ${WORKDIR}/toolchain.cmake <<EOF
     set( CMAKE_SYSTEM_PROCESSOR "${TRANSLATED_TARGET_ARCH}" )
     set( MACHINE "${LIBMETAL_MACHINE}" )
