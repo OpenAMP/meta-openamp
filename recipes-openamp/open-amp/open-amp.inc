@@ -7,8 +7,8 @@ SECTION = "libs"
 LICENSE = "BSD"
 LIC_FILES_CHKSUM ?= "file://LICENSE.md;md5=a8d8cf662ef6bf9936a1e1413585ecbf"
 
-REPO ?= "git://github.com/Xilinx/open-amp.git;protocol=https"
-BRANCH ?= "rel-v2020.2"
+REPO ?= "git://github.com/OpenAMP/open-amp.git;protocol=https"
+BRANCH ?= "main"
 
 # Sources, by default allow for the use of SRCREV pointing to orphaned tags/commits
 BRANCHARG = "${@['nobranch=1', 'branch=${BRANCH}'][d.getVar('BRANCH', True) != '']}"
