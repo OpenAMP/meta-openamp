@@ -11,6 +11,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <limits.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include <time.h>
@@ -20,6 +21,8 @@
 
 #define RPMSG_BUS_SYS "/sys/bus/rpmsg"
 
+#define PR_DBG(fmt, args ...) printf("%s():%u "fmt, __func__, __LINE__, ##args)
+#define SHUTDOWN_MSG    0xEF56A55A
 #define MATRIX_SIZE 6
 
 struct _matrix {
@@ -81,7 +84,7 @@ void matrix_mult(int ntimes)
 	int i;
 
 	for (i=0; i < ntimes; i++){
-		generate_matrices(2, 6, i_matrix);
+		generate_matrices(2, MATRIX_SIZE, i_matrix);
 
 		printf("%d: write rpmsg: %lu bytes\n", i, sizeof(i_matrix));
 		ssize_t rc = write(fd, i_matrix, sizeof(i_matrix));
@@ -95,6 +98,17 @@ void matrix_mult(int ntimes)
 		matrix_print(&r_matrix);
 		printf("End of Matrix multiplication demo Round %d\n", i);
 	}
+}
+
+/*
+ * Probably an overkill to memset(.., sizeof(struct _matrix)) as
+ * the firmware looks for SHUTDOWN_MSG in the first 32 bits.
+ */
+void send_shutdown(int fd)
+{
+	memset(i_matrix, SHUTDOWN_MSG, sizeof(struct _matrix));
+	if (write(fd, i_matrix, sizeof(i_matrix)) < 0)
+		perror("write SHUTDOWN_MSG\n");
 }
 
 int rpmsg_create_ept(int rpfd, struct rpmsg_endpoint_info *eptinfo)
@@ -156,6 +170,7 @@ static int bind_rpmsg_chrdev(const char *rpmsg_dev_name)
 	/* rpmsg dev overrides path */
 	sprintf(fpath, "%s/devices/%s/driver_override",
 		RPMSG_BUS_SYS, rpmsg_dev_name);
+	PR_DBG("open %s\n", fpath);
 	fd = open(fpath, O_WRONLY);
 	if (fd < 0) {
 		fprintf(stderr, "Failed to open %s, %s\n",
@@ -178,6 +193,7 @@ static int bind_rpmsg_chrdev(const char *rpmsg_dev_name)
 			fpath, strerror(errno));
 		return -EINVAL;
 	}
+	PR_DBG("write %s to %s\n", rpmsg_dev_name, fpath);
 	ret = write(fd, rpmsg_dev_name, strlen(rpmsg_dev_name) + 1);
 	if (ret < 0) {
 		fprintf(stderr, "Failed to write %s to %s, %s\n",
@@ -191,27 +207,26 @@ static int bind_rpmsg_chrdev(const char *rpmsg_dev_name)
 static int get_rpmsg_chrdev_fd(const char *rpmsg_dev_name,
 			       char *rpmsg_ctrl_name)
 {
-	char dpath[PATH_MAX];
-	char *rpmsg_ctrl_prefix = "rpmsg_ctrl";
+	char dpath[2*NAME_MAX];
 	DIR *dir;
 	struct dirent *ent;
 	int fd;
 
 	sprintf(dpath, "%s/devices/%s/rpmsg", RPMSG_BUS_SYS, rpmsg_dev_name);
+	PR_DBG("opendir %s\n", dpath);
 	dir = opendir(dpath);
 	if (dir == NULL) {
-		fprintf(stderr, "Failed to open dir %s\n", dpath);
+		fprintf(stderr, "opendir %s, %s\n", dpath, strerror(errno));
 		return -EINVAL;
 	}
 	while ((ent = readdir(dir)) != NULL) {
-		if (!strncmp(ent->d_name, rpmsg_ctrl_prefix,
-			    strlen(rpmsg_ctrl_prefix))) {
+		if (!strncmp(ent->d_name, "rpmsg_ctrl", 10)) {
 			sprintf(dpath, "/dev/%s", ent->d_name);
-			printf("open %s\n", dpath);
+			closedir(dir);
+			PR_DBG("open %s\n", dpath);
 			fd = open(dpath, O_RDWR | O_NONBLOCK);
 			if (fd < 0) {
-				fprintf(stderr,
-					"Failed to open rpmsg char dev %s,%s\n",
+				fprintf(stderr, "open %s, %s\n",
 					dpath, strerror(errno));
 				return fd;
 			}
@@ -220,34 +235,67 @@ static int get_rpmsg_chrdev_fd(const char *rpmsg_dev_name,
 		}
 	}
 
-	fprintf(stderr, "No rpmsg char dev file is found\n");
+	fprintf(stderr, "No rpmsg_ctrl file found in %s\n", dpath);
+	closedir(dir);
 	return -EINVAL;
+}
+
+static void set_src_dst(char *out, struct rpmsg_endpoint_info *pep)
+{
+	long dst = 0;
+	char *lastdot = strrchr(out, '.');
+
+	if (lastdot == NULL)
+		return;
+	dst = strtol(lastdot + 1, NULL, 10);
+	if ((errno == ERANGE && (dst == LONG_MAX || dst == LONG_MIN))
+	    || (errno != 0 && dst == 0)) {
+		return;
+	}
+	pep->dst = (unsigned int)dst;
+}
+
+/*
+ * return the first dirent matching rpmsg-openamp-demo-channel
+ * in /sys/bus/rpmsg/devices/ E.g.:
+ *	virtio0.rpmsg-openamp-demo-channel.-1.1024
+ */
+static void lookup_channel(char *out, struct rpmsg_endpoint_info *pep)
+{
+	char dpath[] = RPMSG_BUS_SYS "/devices";
+	struct dirent *ent;
+	DIR *dir = opendir(dpath);
+
+	if (dir == NULL) {
+		fprintf(stderr, "opendir %s, %s\n", dpath, strerror(errno));
+		return;
+	}
+	while ((ent = readdir(dir)) != NULL) {
+		if (strstr(ent->d_name, pep->name)) {
+			strncpy(out, ent->d_name, NAME_MAX);
+			set_src_dst(out, pep);
+			PR_DBG("using dev file: %s\n", out);
+			closedir(dir);
+			return;
+		}
+	}
+	closedir(dir);
+	fprintf(stderr, "No dev file for %s in %s\n", pep->name, dpath);
 }
 
 int main(int argc, char *argv[])
 {
 	int ntimes = 1;
 	int opt, ret;
-	char *rpmsg_dev="virtio0.rpmsg-openamp-demo-channel.-1.0";
+	char rpmsg_dev[NAME_MAX] = "virtio0.rpmsg-openamp-demo-channel.-1.0";
 	char rpmsg_char_name[16];
-	char fpath[256];
-	struct rpmsg_endpoint_info eptinfo;
+	char fpath[2*NAME_MAX];
+	struct rpmsg_endpoint_info eptinfo = {
+		.name = "rpmsg-openamp-demo-channel", .src = 0, .dst = 0
+	};
 	char ept_dev_name[16];
 	char ept_dev_path[32];
 
-	while ((opt = getopt(argc, argv, "d:n:")) != -1) {
-		switch (opt) {
-		case 'd':
-			rpmsg_dev = optarg;
-			break;
-		case 'n':
-			ntimes = atoi(optarg);
-			break;
-		default:
-			printf("getopt return unsupported option: -%c\n",opt);
-			break;
-		}
-	}
 	printf("\r\n Matrix multiplication demo start \r\n");
 
 	/* Load rpmsg_char driver */
@@ -258,11 +306,31 @@ int main(int argc, char *argv[])
 		return -EINVAL;
 	}
 
-	printf("\r\n Open rpmsg dev %s! \r\n", rpmsg_dev);
-	sprintf(fpath, "%s/devices/%s", RPMSG_BUS_SYS, rpmsg_dev);
+	lookup_channel(rpmsg_dev, &eptinfo);
+
+	while ((opt = getopt(argc, argv, "d:n:s:e:")) != -1) {
+		switch (opt) {
+		case 'd':
+			strncpy(rpmsg_dev, optarg, sizeof(rpmsg_dev));
+			break;
+		case 'n':
+			ntimes = atoi(optarg);
+			break;
+		case 's':
+			eptinfo.src = atoi(optarg);
+			break;
+		case 'e':
+			eptinfo.dst = atoi(optarg);
+			break;
+		default:
+			printf("getopt return unsupported option: -%c\n",opt);
+			break;
+		}
+	}
+
+	sprintf(fpath, RPMSG_BUS_SYS "/devices/%s", rpmsg_dev);
 	if (access(fpath, F_OK)) {
-		fprintf(stderr, "Not able to access rpmsg device %s, %s\n",
-			fpath, strerror(errno));
+		fprintf(stderr, "access(%s): %s\n", fpath, strerror(errno));
 		return -EINVAL;
 	}
 	ret = bind_rpmsg_chrdev(rpmsg_dev);
@@ -273,10 +341,8 @@ int main(int argc, char *argv[])
 		return charfd;
 
 	/* Create endpoint from rpmsg char driver */
-	strcpy(eptinfo.name, "rpmsg-openamp-demo-channel");
-	eptinfo.src = 0;
-	eptinfo.dst = 0;
-
+	PR_DBG("rpmsg_create_ept: %s[src=%#x,dst=%#x]\n",
+		eptinfo.name, eptinfo.src, eptinfo.dst);
 	ret = rpmsg_create_ept(charfd, &eptinfo);
 	if (ret) {
 		fprintf(stderr, "rpmsg_create_ept %s\n", strerror(errno));
@@ -295,9 +361,10 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
-	printf("%s:%d matrix_mult(%d)\n", __func__, __LINE__, ntimes);
+	PR_DBG("matrix_mult(%d)\n", ntimes);
 	matrix_mult(ntimes);
 
+	send_shutdown(fd);
 	close(fd);
 	if (charfd >= 0)
 		close(charfd);
