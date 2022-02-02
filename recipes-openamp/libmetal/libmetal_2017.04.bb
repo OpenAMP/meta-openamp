@@ -1,6 +1,0 @@
-SRCBRANCH ?= "master"
-SRCREV = "51e08c67556474762257a825fc92cf8dbd302388"
-LIC_FILES_CHKSUM = "file://LICENSE.md;md5=395307789d21fd8945fc1c933cad18b5"
-
-include libmetal.inc
-

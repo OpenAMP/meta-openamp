@@ -1,5 +1,0 @@
-SRCBRANCH ?= "master"
-SRCREV = "b041167a42a75f08c7b709622158f8d9d346a594"
-LIC_FILES_CHKSUM = "file://LICENSE;md5=b30cbe0b980e98bfd9759b1e6ba3d107"
-
-include open-amp.inc
