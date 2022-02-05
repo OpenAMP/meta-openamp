@@ -60,8 +60,8 @@ python rpmsg_no_ipi_setup() {
 # only add definition after toolchain file has been generated
 do_generate_toolchain_file[postfuncs] += "rpmsg_no_ipi_setup"
 
-ALLOW_EMPTY:${PN}-demos = "1"
-PACKAGES:append += "${PN}-demos"
+ALLOW_EMPTY_${PN}-demos = "1"
+PACKAGES:append = " ${PN}-demos"
 
 FILES:${PN} = " \
     ${libdir}/*.so* \

@@ -44,7 +44,7 @@ EXTRA_OECMAKE:append:versal = " -DWITH_VFIO=on"
 
 ALLOW_EMPTY:${PN}-demos = "1"
 
-PACKAGES:append += "${PN}-demos"
+PACKAGES:append = " ${PN}-demos"
 
 FILES:${PN} = " \
     ${libdir}/*.so* \
