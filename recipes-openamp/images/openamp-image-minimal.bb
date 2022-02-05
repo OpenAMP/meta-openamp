@@ -5,7 +5,7 @@ LICENSE = "MIT"
 
 inherit core-image
 
-IMAGE_INSTALL += " \
+IMAGE_INSTALL:append = " \
     packagegroup-core-boot \
     ${CORE_IMAGE_EXTRA_INSTALL} \
     libmetal \
@@ -14,20 +14,17 @@ IMAGE_INSTALL += " \
 
 # for the generic arm64 machine (right now qemuarm64)
 # install all the modules we built
-IMAGE_INSTALL:qemuarm64 += " \
-    kernel-modules \
-    "
+IMAGE_INSTALL:qemuarm64:append = " kernel-modules"
 
 # save for later
 #    kernel-module-zynqmp-r5-remoteproc
 
 # uio-pdrv-genirq is not available upstream
 # for now assume MACHINE = something Xilinx means kernel is Xilinx kernel
-IMAGE_INSTALL:zynqmp += " kernel-module-uio-pdrv-genirq"
+IMAGE_INSTALL:zynqmp:append = " kernel-module-uio-pdrv-genirq"
 
 # for these machines, these are builtin
-#IMAGE_INSTALL:zynqmp += " kernel-module-zynqmp-r5-remoteproc"
-#IMAGE_INSTALL:zynqmp += " kernel-module-virtio-rpmsg-bus"
-#IMAGE_INSTALL:zynq   += " kernel-module-zynq-remoteproc"
+# zynqmp: kernel-module-zynqmp-r5-remoteproc kernel-module-virtio-rpmsg-bus
+# zynq: kernel-module-zynq-remoteproc
 
 IMAGE_LINGUAS=""
