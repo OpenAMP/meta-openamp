@@ -66,7 +66,7 @@ PROVIDES = "openamp"
 
 inherit pkgconfig cmake yocto-cmake-translation
 
-LOPS_DIR="${RECIPE_SYSROOT_NATIVE}/usr/share/lopper/lops/"
+LOPS_DIR="${PYTHON_SITEPACKAGES_DIR}/lopper/lops/"
 OVERLAY ?= "${S}/../openamp-overlay-kernel.yaml"
 CHANNEL_INFO_FILE = "openamp-channel-info.txt"
 LOPPER_OPENAMP_OUT_DTB = "${WORKDIR}/openamp-lopper-output.dtb"
@@ -85,7 +85,7 @@ OPENAMP_LOPPER_INPUTS:linux = " \
 do_run_lopper() {
     cd ${WORKDIR}
 
-    ${LOPS_DIR}/../lopper.py -f -v --enhanced  --permissive \
+    lopper -f -v --enhanced  --permissive \
     ${OPENAMP_LOPPER_INPUTS} \
     ${SYSTEM_DTFILE} \
     ${LOPPER_OPENAMP_OUT_DTB}

@@ -61,7 +61,7 @@ FILES:${PN}-demos:armv7r:xilinx-standalone = " \
     ${base_libdir}/firmware/*\.out \
 "
 
-LOPS_DIR="${RECIPE_SYSROOT_NATIVE}/usr/share/lopper/lops/"
+LOPS_DIR="${PYTHON_SITEPACKAGES_DIR}/lopper/lops/"
 OVERLAY ?= "${S}/../openamp-overlay-kernel.yaml"
 
 CHANNEL_INFO_FILE = "openamp-channel-info.txt"
@@ -74,7 +74,7 @@ PACKAGE_MINIDEBUGINFO:armv7r:xilinx-standalone = '1'
 do_run_lopper() {
     cd ${WORKDIR}
 
-    ${LOPS_DIR}/../lopper.py -f -v --enhanced  --permissive \
+    lopper -f -v --enhanced  --permissive \
     -i ${OVERLAY} \
     -i ${LOPS_DIR}/lop-xlate-yaml.dts \
     -i ${LOPS_DIR}/lop-load.dts \
