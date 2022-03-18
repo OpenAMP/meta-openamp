@@ -207,10 +207,6 @@ int file_write(char *path, char *str)
 void stop_remote(void)
 {
 	system("modprobe -r rpmsg_char");
-	sprintf(sbuf,
-		"/sys/class/remoteproc/remoteproc%u/state",
-		r5_id);
-	(void)file_write(sbuf, "stop");
 }
 
 void exit_action_handler(int signum)
@@ -472,22 +468,6 @@ int main(int argc, char *argv[])
 	if (user_fw_path) {
 		sprintf(sbuf, "cp %s %s", user_fw_path, fw_dst_path);
 		system(sbuf);
-	}
-
-	/* Write firmware name to remoteproc sysfs interface */
-	sprintf(sbuf,
-		"/sys/class/remoteproc/remoteproc%u/firmware",
-		r5_id);
-	if (0 != file_write(sbuf, "image_rpc_demo")) {
-		return -EINVAL;
-	}
-
-	/* Tell remoteproc to load and start remote cpu */
-	sprintf(sbuf,
-		"/sys/class/remoteproc/remoteproc%u/state",
-		r5_id);
-	if (0 != file_write(sbuf, "start")) {
-		return -EINVAL;
 	}
 
 	/* Load rpmsg_char driver */
