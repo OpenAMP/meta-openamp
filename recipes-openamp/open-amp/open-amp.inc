@@ -22,7 +22,6 @@ PROVIDES = "openamp"
 
 inherit pkgconfig cmake yocto-cmake-translation
 
-OPENAMP_MACHINE:versal = "zynqmp"
 OPENAMP_MACHINE ?= "${@get_cmake_machine(d.getVar('TARGET_OS'), d.getVar('TUNE_ARCH'), d.getVar('SOC_FAMILY'), d)}"
 EXTRA_OECMAKE = " \
 	-DLIB_INSTALL_DIR=${libdir} \
@@ -30,21 +29,13 @@ EXTRA_OECMAKE = " \
 	-DMACHINE=${OPENAMP_MACHINE} \
 	"
 
-SOC_FAMILY_ARCH ??= "${TUNE_PKGARCH}"
-PACKAGE_ARCH = "${SOC_FAMILY_ARCH}"
-
-CFLAGS:append:versal = " -Dversal "
-
+PACKAGE_ARCH = "${MACHINE_ARCH}"
 
 # by default enable proxy apps
 OPENAMP_PROXY ?= "1"
 
 # by default use IPI for polling
 OPENAMP_SHMEM_POLL ?= "0"
-
-# OpenAMP apps not ready for Zynq
-EXTRA_OECMAKE:append:zynqmp = "-DWITH_APPS=ON "
-EXTRA_OECMAKE:append:versal = "-DWITH_APPS=ON "
 
 EXTRA_OECMAKE:append = " ${@'-DWITH_PROXY=on -DWITH_PROXY_APPS=on' if d.getVar('OPENAMP_PROXY') == '1' else ''}"
 
@@ -70,8 +61,3 @@ FILES:${PN} = " \
 FILES:${PN}-demos = " \
     ${bindir}/*-shared \
 "
-do_install:append () {
-	# Only install echo test client, matrix multiplication client,
-	# and proxy app server for ZynqMP
-	rm -rf ${D}/${bindir}/*-static
-}

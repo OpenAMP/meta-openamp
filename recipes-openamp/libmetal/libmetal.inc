@@ -25,11 +25,9 @@ PROVIDES = "libmetal"
 
 inherit pkgconfig cmake yocto-cmake-translation
 
-LIBMETAL_MACHINE:versal = "zynqmp"
 LIBMETAL_MACHINE ?= "${@get_cmake_machine(d.getVar('TARGET_OS'), d.getVar('TUNE_ARCH'), d.getVar('SOC_FAMILY'), d)}"
 
-SOC_FAMILY_ARCH ??= "${TUNE_PKGARCH}"
-PACKAGE_ARCH = "${SOC_FAMILY_ARCH}"
+PACKAGE_ARCH = "${MACHINE_ARCH}"
 
 EXTRA_OECMAKE = " \
 	-DLIB_INSTALL_DIR=${libdir} \
@@ -38,9 +36,6 @@ EXTRA_OECMAKE = " \
 	-DWITH_EXAMPLES=ON \
 	-DSOC_FAMILY="${SOC_FAMILY}" \
 	"
-
-EXTRA_OECMAKE:append:zynqmp = " -DWITH_VFIO=on"
-EXTRA_OECMAKE:append:versal = " -DWITH_VFIO=on"
 
 ALLOW_EMPTY:${PN}-demos = "1"
 
