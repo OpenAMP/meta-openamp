@@ -29,13 +29,13 @@ EXTRA_OECMAKE = " \
 SOC_FAMILY_ARCH ??= "${TUNE_PKGARCH}"
 PACKAGE_ARCH = "${SOC_FAMILY_ARCH}"
 
-CFLAGS:versal += " -Dversal -O1 "
+CFLAGS:append:versal = " -Dversal -O1 "
 # OpenAMP apps not ready for Zynq
 EXTRA_OECMAKE:append:zynqmp = "-DWITH_APPS=ON -DWITH_PROXY=on -DWITH_PROXY_APPS=on "
 EXTRA_OECMAKE:append:versal = "-DWITH_APPS=ON -DWITH_PROXY=on -DWITH_PROXY_APPS=on "
 
 ALLOW_EMPTY:${PN}-demos = "1"
-PACKAGES:append += "${PN}-demos"
+PACKAGES:append = " ${PN}-demos"
 
 FILES:${PN} = " \
     ${libdir}/*.so* \

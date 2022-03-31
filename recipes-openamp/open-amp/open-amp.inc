@@ -33,7 +33,7 @@ EXTRA_OECMAKE = " \
 SOC_FAMILY_ARCH ??= "${TUNE_PKGARCH}"
 PACKAGE_ARCH = "${SOC_FAMILY_ARCH}"
 
-CFLAGS:versal += " -Dversal "
+CFLAGS:append:versal = " -Dversal "
 
 
 # by default enable proxy apps

@@ -8,12 +8,14 @@ SRC_URI:armv7r:xilinx-standalone = "git://gitenterprise.xilinx.com/OpenAMP/libme
 
 OECMAKE_SOURCEPATH = "${S}/"
 PROVIDES:armv7r:xilinx-standalone = "libmetal "
-DEPENDS:armv7r:xilinx-standalone += " libxil scugic doxygen-native xilstandalone"
+DEPENDS:append:armv7r:xilinx-standalone = " libxil scugic doxygen-native xilstandalone"
 inherit cmake
 LICENSE = "BSD"
 LIC_FILES_CHKSUM = "file://LICENSE.md;md5=1ff609e96fc79b87da48a837cbe5db33"
 
-do_configure:armv7r:xilinx-standalone[depends] += "device-tree-lops:do_deploy"
+XLNX_STNDALONE_DO_CONFIGURE = ""
+XLNX_STNDALONE_DO_CONFIGURE:armv7r:xilinx-standalone = "device-tree-lops:do_deploy"
+do_configure[depends] += "${XLNX_STNDALONE_DO_CONFIGURE}"
 
 EXTRA_OECMAKE:armv7r:xilinx-standalone = " \
 	-DLIB_INSTALL_DIR=${libdir} \

@@ -8,7 +8,7 @@ S = "${WORKDIR}/git"
 B = "${WORKDIR}/build"
 OECMAKE_SOURCEPATH = "${S}/"
 PROVIDES = "openamp"
-DEPENDS:armv7r:xilinx-standalone += " libmetal xilstandalone python3-pyyaml-native lopper-native python3-dtc-native  nativesdk-xilinx-lops "
+DEPENDS:append:armv7r:xilinx-standalone = " libmetal xilstandalone python3-pyyaml-native lopper-native python3-dtc-native  nativesdk-xilinx-lops "
 DTS_FILE = "/scratch/decoupling/lopper/lopper-sdt.dtb"
 FILESEXTRAPATHS:append := ":${THISDIR}/overlays"
 SRC_URI:append = " \
@@ -17,9 +17,17 @@ SRC_URI:append = " \
 
 inherit cmake deploy
 # We need the deployed output
-do_configure:armv7r:xilinx-standalone[depends] += "device-tree-lops:do_deploy lopper-native:do_install"
-do_compile:armv7r:xilinx-standalone[depends] += "device-tree-lops:do_deploy"
-do_install:armv7r:xilinx-standalone[depends] += "device-tree-lops:do_deploy"
+XLNX_STNDALONE_DO_CONFIGURE = ""
+XLNX_STNDALONE_DO_CONFIGURE:armv7r:xilinx-standalone = "device-tree-lops:do_deploy lopper-native:do_install"
+do_configure[depends] += "${XLNX_STNDALONE_DO_CONFIGURE}"
+
+XLNX_STNDALONE_DO_COMPILE = ""
+XLNX_STNDALONE_DO_COMPILE:armv7r:xilinx-standalone = "device-tree-lops:do_deploy"
+do_compile[depends] += "${XLNX_STNDALONE_DO_COMPILE}"
+
+XLNX_STNDALONE_DO_INSTALL = ""
+XLNX_STNDALONE_DO_INSTALL:armv7r:xilinx-standalone = "device-tree-lops:do_deploy"
+do_install[depends] += "${XLNX_STNDALONE_DO_INSTALL}"
 
 BB_STRICT_CHECKSUM = "0"
 
@@ -51,7 +59,7 @@ OPENAMP_MACHINE = "${@get_openamp_machine(d.getVar('SOC_FAMILY'))}"
 
 
 ALLOW_EMPTY:${PN}-demos = "1"
-PACKAGES:append += "${PN}-demos"
+PACKAGES:append = " ${PN}-demos"
 EXTRA_OECMAKE:append = "-DWITH_APPS=ON "
 
 REQUIRED_DISTRO_FEATURES:armv7r:xilinx-standalone = "${DISTRO_FEATURES}"
