@@ -19,13 +19,15 @@ layers: meta-oe
 Maintenance
 -----------
 
-Send pull requests, patches, comments or questions to open-amp@googlegroups.com
+Send comments or questions to open-amp@googlegroups.com
+
+Pull requests should be sent using the github pull request mechanism in the
+  OpenAMP/meta-openamp project
 
 Maintainers:
-	Wendy Liang <wendy.liang@xilinx.com>
-
-When sending single patches, please using something like:
-'git send-email -1 --to open-amp@googlegroups.com --subject-prefix='meta-openamp][patch'
+    Ben Levinsky <ben.levinsky@xilinx.com>
+    Bill Mills <bill.mills@linaro.org>
+    Mark Hatle <mark.hatle@amd.com>
 
 License
 -------
