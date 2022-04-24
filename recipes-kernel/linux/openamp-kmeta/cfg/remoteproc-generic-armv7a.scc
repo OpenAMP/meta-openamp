@@ -1,0 +1,6 @@
+define KFEATURE_DESCRIPTION "OpenAMP Generic ARM64 Kernel Support"
+define KFEATURE_COMPATIBILITY arch
+
+kconf non-hardware basic.cfg
+kconf non-hardware armv7a-feature-parity.cfg
+kconf non-hardware remoteproc-armv7a.cfg
