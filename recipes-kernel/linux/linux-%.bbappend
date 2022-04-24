@@ -3,5 +3,6 @@ SRC_URI:append = " file://openamp-kmeta;type=kmeta;name=openamp-kmeta;destsuffix
 
 KERNEL_FEATURES:append = "${@bb.utils.contains('DISTRO_FEATURES', 'openamp', ' cfg/openamp.scc', '', d)}"
 
-# genericarm64 viaqemuarm64 w/ openamp distro feature
-KERNEL_FEATURES:qemuarm64:append = "${@bb.utils.contains('DISTRO_FEATURES', 'openamp', ' cfg/remoteproc-genericarm64.scc', '', d)}"
+# genericarm64 via qemuarm64 w/ openamp distro feature
+KERNEL_FEATURES:qemuarm64:append = "${@bb.utils.contains('DISTRO_FEATURES', 'openamp', ' cfg/remoteproc-generic-arm64.scc', '', d)}"
+KERNEL_FEATURES:generic-arm64:append = "${@bb.utils.contains('DISTRO_FEATURES', 'openamp', ' cfg/remoteproc-generic-arm64.scc', '', d)}"
