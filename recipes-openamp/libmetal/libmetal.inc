@@ -4,7 +4,9 @@ HOMEPAGE = "https://github.com/OpenAMP/libmetal/"
 
 SECTION = "libs"
 
-LICENSE = "BSD"
+# NOTE: some scripts used in patch compliance are Apache-2.0 but these are not
+# used on target nor in normal builds
+LICENSE = "BSD-3-Clause"
 LIC_FILES_CHKSUM ?= "file://LICENSE.md;md5=fe0b8a4beea8f0813b606d15a3df3d3c"
 
 REPO ?= "git://github.com/OpenAMP/libmetal.git;protocol=https"

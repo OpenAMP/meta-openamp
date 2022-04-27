@@ -4,7 +4,8 @@ HOMEPAGE = "https://github.com/OpenAMP/open-amp/"
 
 SECTION = "libs"
 
-LICENSE = "BSD"
+# As of 2022/04/27, the virtio layer is BSD 2 Clause and the rest BSD 3 Clause
+LICENSE = "BSD-3-Clause & BSD-2-Clause"
 LIC_FILES_CHKSUM ?= "file://LICENSE.md;md5=a8d8cf662ef6bf9936a1e1413585ecbf"
 
 REPO ?= "git://github.com/OpenAMP/open-amp.git;protocol=https"
