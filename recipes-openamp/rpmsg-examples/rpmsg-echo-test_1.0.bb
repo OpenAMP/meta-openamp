@@ -1,6 +1,6 @@
 SUMMARY = "RPMsg examples: echo test demo"
 
-LICENSE = "BSD"
+LICENSE = "BSD-3-Clause"
 LIC_FILES_CHKSUM = "file://LICENSE;md5=b30cbe0b980e98bfd9759b1e6ba3d107"
 
 SRC_URI = "\
