@@ -5,16 +5,15 @@ LICENSE = "MIT"
 
 inherit core-image
 
-IMAGE_INSTALL += " \
+IMAGE_INSTALL:append = " \
     packagegroup-core-boot \
     ${CORE_IMAGE_EXTRA_INSTALL} \
-    kernel-module-uio-pdrv-genirq \
-    kernel-module-virtio-rpmsg-bus \
     libmetal \
     open-amp \
     "
 
-#IMAGE_INSTALL_append_zynqmp += " kernel-module-zynqmp-r5-remoteproc"
-#IMAGE_INSTALL_append_zynq += " kernel-module-zynq-remoteproc"
+# for the generic arm64 machine (right now qemuarm64)
+# install all the modules we built
+IMAGE_INSTALL:qemuarm64:append = " kernel-modules"
 
 IMAGE_LINGUAS=""

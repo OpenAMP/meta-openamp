@@ -7,8 +7,8 @@ SECTION = "libs"
 LICENSE = "BSD"
 LIC_FILES_CHKSUM ?= "file://LICENSE.md;md5=fe0b8a4beea8f0813b606d15a3df3d3c"
 
-REPO ?= "git://github.com/Xilinx/libmetal.git;protocol=https"
-BRANCH ?= "rel-v2020.2"
+REPO ?= "git://github.com/OpenAMP/libmetal.git;protocol=https"
+BRANCH ?= "main"
 
 # Sources, by default allow for the use of SRCREV pointing to orphaned tags/commits
 BRANCHARG = "${@['nobranch=1', 'branch=${BRANCH}'][d.getVar('BRANCH', True) != '']}"
@@ -17,19 +17,17 @@ SRC_URI = "${REPO};${BRANCHARG}"
 S = "${WORKDIR}/git"
 
 # if user want to enable hugetlbfs support, please
-# add "DEPENDS_append_pn-libmetal = " libhugetlbfs "" to your local.conf
-DEPENDS = "sysfsutils udev"
-RDEPENDS_${PN} += "libudev"
+# add "DEPENDS:append:pn-libmetal = " libhugetlbfs "" to your local.conf
+DEPENDS = "sysfsutils ${@bb.utils.contains('DISTRO_FEATURES', 'systemd', 'udev', 'eudev', d)}"
+RDEPENDS:${PN}:append:aarch64:linux = " libudev"
 
 PROVIDES = "libmetal"
 
 inherit pkgconfig cmake yocto-cmake-translation
 
-LIBMETAL_MACHINE_versal = "zynqmp"
 LIBMETAL_MACHINE ?= "${@get_cmake_machine(d.getVar('TARGET_OS'), d.getVar('TUNE_ARCH'), d.getVar('SOC_FAMILY'), d)}"
 
-SOC_FAMILY_ARCH ??= "${TUNE_PKGARCH}"
-PACKAGE_ARCH = "${SOC_FAMILY_ARCH}"
+PACKAGE_ARCH = "${MACHINE_ARCH}"
 
 EXTRA_OECMAKE = " \
 	-DLIB_INSTALL_DIR=${libdir} \
@@ -39,23 +37,20 @@ EXTRA_OECMAKE = " \
 	-DSOC_FAMILY="${SOC_FAMILY}" \
 	"
 
-EXTRA_OECMAKE_append_zynqmp = " -DWITH_VFIO=on"
-EXTRA_OECMAKE_append_versal = " -DWITH_VFIO=on"
+ALLOW_EMPTY:${PN}-demos = "1"
 
-ALLOW_EMPTY_${PN}-demos = "1"
+PACKAGES:append = " ${PN}-demos"
 
-PACKAGES_append += "${PN}-demos"
-
-FILES_${PN} = " \
+FILES:${PN} = " \
     ${libdir}/*.so* \
     ${bindir}/test-* \
 "
-FILES_${PN}-demos = " \
+FILES:${PN}-demos = " \
     ${bindir}/libmetal_* \
     ${bindir}/*demo \
 "
 
-do_install_append () {
+do_install:append () {
 	# Only install the shared lib binaries
 	rm -rf ${D}/${bindir}/*-static
 

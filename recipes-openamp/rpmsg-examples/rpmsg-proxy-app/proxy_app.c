@@ -2,14 +2,13 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
+#include <limits.h>
 #include <time.h>
 #include <fcntl.h>
 #include <string.h>
 #include <sys/ioctl.h>
 #include <signal.h>
 #include <unistd.h>
-#include <errno.h>
 #include "proxy_app.h"
 #include <linux/rpmsg.h>
 
@@ -135,7 +134,6 @@ int handle_write(struct _sys_rpc *rpc)
 int handle_rpc(struct _sys_rpc *rpc)
 {
 	int retval;
-	char *data = (char *)rpc;
 
 	/* Handle RPC */
 	switch ((int)(rpc->id)) {
@@ -209,10 +207,6 @@ int file_write(char *path, char *str)
 void stop_remote(void)
 {
 	system("modprobe -r rpmsg_char");
-	sprintf(sbuf,
-		"/sys/class/remoteproc/remoteproc%u/state",
-		r5_id);
-	(void)file_write(sbuf, "stop");
 }
 
 void exit_action_handler(int signum)
@@ -269,34 +263,6 @@ static char *get_rpmsg_ept_dev_name(const char *rpmsg_char_name,
 	return NULL;
 }
 
-static int rpmsg_create_ept_dev(int rpfd, struct rpmsg_endpoint_info *eptinfo)
-{
-	char ept_dev_name[16];
-	char ept_dev_path[32];
-	char *rpmsg_char_name;
-	int fd, ret;
-
-	ret = rpmsg_create_ept(rpfd, eptinfo);
-	if (ret) {
-		printf("failed to create RPMsg endpoint.\n");
-		return ret;
-	}
-
-	rpmsg_char_name = "rpmsg_ctrl0";
-	if (!get_rpmsg_ept_dev_name(rpmsg_char_name, eptinfo->name,
-				   ept_dev_name)) {
-		return -1;
-	}
-	sprintf(ept_dev_path, "/dev/%s", ept_dev_name);
-	printf("opening %s.\n", ept_dev_path);
-	fd = open(ept_dev_path, O_RDWR | O_NONBLOCK);
-	if (fd < 0) {
-		perror("Failed to open rpmsg endpoint device.");
-		return -1;
-	}
-	return fd;
-}
-
 static int bind_rpmsg_chrdev(const char *rpmsg_dev_name)
 {
 	char fpath[256];
@@ -307,6 +273,7 @@ static int bind_rpmsg_chrdev(const char *rpmsg_dev_name)
 	/* rpmsg dev overrides path */
 	sprintf(fpath, "%s/devices/%s/driver_override",
 		RPMSG_BUS_SYS, rpmsg_dev_name);
+	printf("open %s\n", fpath);
 	fd = open(fpath, O_WRONLY);
 	if (fd < 0) {
 		fprintf(stderr, "Failed to open %s, %s\n",
@@ -329,6 +296,7 @@ static int bind_rpmsg_chrdev(const char *rpmsg_dev_name)
 			fpath, strerror(errno));
 		return -EINVAL;
 	}
+	printf("write %s to %s\n", rpmsg_dev_name, fpath);
 	ret = write(fd, rpmsg_dev_name, strlen(rpmsg_dev_name) + 1);
 	if (ret < 0) {
 		fprintf(stderr, "Failed to write %s to %s, %s\n",
@@ -342,29 +310,26 @@ static int bind_rpmsg_chrdev(const char *rpmsg_dev_name)
 static int get_rpmsg_chrdev_fd(const char *rpmsg_dev_name,
 			       char *rpmsg_ctrl_name)
 {
-	char dpath[256];
-	char fpath[256];
-	char *rpmsg_ctrl_prefix = "rpmsg_ctrl";
+	char dpath[2*NAME_MAX];
 	DIR *dir;
 	struct dirent *ent;
 	int fd;
 
 	sprintf(dpath, "%s/devices/%s/rpmsg", RPMSG_BUS_SYS, rpmsg_dev_name);
+	printf("opendir %s\n", dpath);
 	dir = opendir(dpath);
 	if (dir == NULL) {
-		fprintf(stderr, "Failed to open dir %s\n", dpath);
+		fprintf(stderr, "opendir %s, %s\n", dpath, strerror(errno));
 		return -EINVAL;
 	}
 	while ((ent = readdir(dir)) != NULL) {
-		if (!strncmp(ent->d_name, rpmsg_ctrl_prefix,
-			    strlen(rpmsg_ctrl_prefix))) {
-			printf("Opening file %s.\n", ent->d_name);
-			sprintf(fpath, "/dev/%s", ent->d_name);
-			fd = open(fpath, O_RDWR | O_NONBLOCK);
+		if (!strncmp(ent->d_name, "rpmsg_ctrl", 10)) {
+			sprintf(dpath, "/dev/%s", ent->d_name);
+			printf("open %s\n", dpath);
+			fd = open(dpath, O_RDWR | O_NONBLOCK);
 			if (fd < 0) {
-				fprintf(stderr,
-					"Failed to open rpmsg char dev %s,%s\n",
-					fpath, strerror(errno));
+				fprintf(stderr, "open %s, %s\n",
+					dpath, strerror(errno));
 				return fd;
 			}
 			sprintf(rpmsg_ctrl_name, "%s", ent->d_name);
@@ -376,27 +341,47 @@ static int get_rpmsg_chrdev_fd(const char *rpmsg_dev_name,
 	return -EINVAL;
 }
 
-static int get_rpmsg_dev_name(const char *rpmsg_svc_name, char *rpmsg_dev_name)
+static void set_src_dst(char *out, struct rpmsg_endpoint_info *pep)
 {
-	char dpath[64];
-	DIR *dir;
-	struct dirent *ent;
-	int fd;
+	long dst = 0;
+	char *lastdot = strrchr(out, '.');
 
-	sprintf(dpath, "%s/devices", RPMSG_BUS_SYS);
-	dir = opendir(dpath);
+	if (lastdot == NULL)
+		return;
+	dst = strtol(lastdot + 1, NULL, 10);
+	if ((errno == ERANGE && (dst == LONG_MAX || dst == LONG_MIN))
+	    || (errno != 0 && dst == 0)) {
+		return;
+	}
+	pep->dst = (unsigned int)dst;
+}
+
+/*
+ * return the first dirent matching rpmsg-openamp-demo-channel
+ * in /sys/bus/rpmsg/devices/ E.g.:
+ *	virtio0.rpmsg-openamp-demo-channel.-1.1024
+ */
+static int lookup_channel(char *out, struct rpmsg_endpoint_info *pep)
+{
+	char dpath[] = RPMSG_BUS_SYS "/devices";
+	struct dirent *ent;
+	DIR *dir = opendir(dpath);
+
 	if (dir == NULL) {
-		fprintf(stderr, "Failed to open dir %s\n", dpath);
+		fprintf(stderr, "opendir %s, %s\n", dpath, strerror(errno));
 		return -EINVAL;
 	}
 	while ((ent = readdir(dir)) != NULL) {
-		if (strstr(ent->d_name, rpmsg_svc_name) != NULL) {
-			sprintf(rpmsg_dev_name, "%s", ent->d_name);
+		if (strstr(ent->d_name, pep->name)) {
+			strncpy(out, ent->d_name, NAME_MAX);
+			set_src_dst(out, pep);
+			printf("using dev file: %s\n", out);
+			closedir(dir);
 			return 0;
 		}
 	}
-
-	fprintf(stderr, "No rpmsg dev file is found for %s.\n", rpmsg_svc_name);
+	closedir(dir);
+	fprintf(stderr, "No dev file for %s in %s\n", pep->name, dpath);
 	return -EINVAL;
 }
 
@@ -431,16 +416,16 @@ int main(int argc, char *argv[])
 	struct sigaction exit_action;
 	struct sigaction kill_action;
 	int bytes_rcvd;
-	int i = 0;
 	int opt = 0;
 	int ret = 0;
 	char *user_fw_path = 0;
-	char rpmsg_dev_name[256];
+	char rpmsg_dev_name[NAME_MAX];
 	char rpmsg_char_name[16];
-	char *rpmsg_svc="rpmsg-openamp-demo-channel";
 	int rpmsg_char_fd = -1;
 	int ept_fd = -1;
-	struct rpmsg_endpoint_info eptinfo;
+	struct rpmsg_endpoint_info eptinfo = {
+		.name = "rpmsg-openamp-demo-channel", .src = 0, .dst = 0
+	};
 	char ept_dev_name[16];
 	char ept_dev_path[32];
 
@@ -485,22 +470,6 @@ int main(int argc, char *argv[])
 		system(sbuf);
 	}
 
-	/* Write firmware name to remoteproc sysfs interface */
-	sprintf(sbuf,
-		"/sys/class/remoteproc/remoteproc%u/firmware",
-		r5_id);
-	if (0 != file_write(sbuf, "image_rpc_demo")) {
-		return -EINVAL;
-	}
-
-	/* Tell remoteproc to load and start remote cpu */
-	sprintf(sbuf,
-		"/sys/class/remoteproc/remoteproc%u/state",
-		r5_id);
-	if (0 != file_write(sbuf, "start")) {
-		return -EINVAL;
-	}
-
 	/* Load rpmsg_char driver */
 	printf("\r\nMaster>probe rpmsg_char\r\n");
 	ret = system("modprobe rpmsg_char");
@@ -512,7 +481,7 @@ int main(int argc, char *argv[])
 
 	/* Wait for rpmsg dev to be probed */
 	sleep(1);
-	ret = get_rpmsg_dev_name(rpmsg_svc, rpmsg_dev_name);
+	ret = lookup_channel(rpmsg_dev_name, &eptinfo);
 	if (ret < 0)
 		goto error0;
 
@@ -526,9 +495,8 @@ int main(int argc, char *argv[])
 	}
 
 	/* Create endpoint from rpmsg char driver */
-	strcpy(eptinfo.name, "rpmsg-openamp-demo-channel");
-	eptinfo.src = 0;
-	eptinfo.dst = 0xFFFFFFFF;
+	printf("rpmsg_create_ept: %s[src=%#x,dst=%#x]\n",
+		eptinfo.name, eptinfo.src, eptinfo.dst);
 	ret = rpmsg_create_ept(rpmsg_char_fd, &eptinfo);
 	if (ret) {
 		printf("failed to create RPMsg endpoint.\n");

@@ -1,0 +1,8 @@
+LIBMETAL_MACHINE:versal = "zynqmp"
+
+SOC_FAMILY_ARCH ??= "${TUNE_PKGARCH}"
+PACKAGE_ARCH = "${SOC_FAMILY_ARCH}"
+
+EXTRA_OECMAKE:append:zynqmp = " -DWITH_VFIO=on"
+EXTRA_OECMAKE:append:versal = " -DWITH_VFIO=on"
+

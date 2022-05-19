@@ -1,7 +1,6 @@
-SRCBRANCH ?= "xlnx_rel_v2021.1"
-SRCREV = "84041fa84d9bc524357b030ebe9a5174b01377bd"
-BRANCH = "xlnx_rel_v2021.1"
-LIC_FILES_CHKSUM ?= "file://LICENSE.md;md5=0e6d7bfe689fe5b0d0a89b2ccbe053fa"
+SRCBRANCH ?= "main"
+SRCREV = "b8cd61b5191a3d961d99d9114cb781b3b5b66d7c"
+BRANCH = "main"
 PV = "${SRCBRANCH}+git${SRCPV}"
 
 include open-amp.inc
