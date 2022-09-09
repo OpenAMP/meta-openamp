@@ -100,14 +100,11 @@ void matrix_mult(int ntimes)
 	}
 }
 
-/*
- * Probably an overkill to memset(.., sizeof(struct _matrix)) as
- * the firmware looks for SHUTDOWN_MSG in the first 32 bits.
- */
 void send_shutdown(int fd)
 {
-	memset(i_matrix, SHUTDOWN_MSG, sizeof(struct _matrix));
-	if (write(fd, i_matrix, sizeof(i_matrix)) < 0)
+	int sdm = SHUTDOWN_MSG;
+
+	if (write(fd, &sdm, sizeof(int)) < 0)
 		perror("write SHUTDOWN_MSG\n");
 }
 
