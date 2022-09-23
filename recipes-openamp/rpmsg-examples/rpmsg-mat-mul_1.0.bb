@@ -1,16 +1,8 @@
 SUMMARY = "RPMsg examples: Matrix Multiplication demo"
 
+include rpmsg-example.inc
 
-LICENSE = "BSD-3-Clause"
-LIC_FILES_CHKSUM = "file://LICENSE;md5=b30cbe0b980e98bfd9759b1e6ba3d107"
-
-SRC_URI = "\
-	file://LICENSE \
-	file://Makefile \
-	file://mat_mul_demo.c \
-	"
-
-S = "${WORKDIR}"
+S = "${WORKDIR}/git/examples/linux/rpmsg-mat-mul"
 
 RRECOMMENDS:${PN} = "kernel-module-rpmsg-char"
 

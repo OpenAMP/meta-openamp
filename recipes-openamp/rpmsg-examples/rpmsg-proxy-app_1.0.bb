@@ -1,16 +1,8 @@
-SUMMARY = "RPMsg examples: Matrix Multiplication demo"
+SUMMARY = "RPMsg examples: proxy file system demo"
 
-LICENSE = "BSD-3-Clause"
-LIC_FILES_CHKSUM = "file://LICENSE;md5=b30cbe0b980e98bfd9759b1e6ba3d107"
+include rpmsg-example.inc
 
-SRC_URI = "\
-	file://LICENSE \
-	file://Makefile \
-	file://proxy_app.c \
-	file://proxy_app.h \
-	"
-
-S = "${WORKDIR}"
+S = "${WORKDIR}/git/examples/linux/rpmsg-proxy-app"
 
 RRECOMMENDS:${PN} = "kernel-module-rpmsg-char"
 
