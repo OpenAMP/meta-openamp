@@ -1,8 +1,5 @@
 OPENAMP_MACHINE:versal = "zynqmp"
 
-SOC_FAMILY_ARCH ??= "${TUNE_PKGARCH}"
-PACKAGE_ARCH = "${SOC_FAMILY_ARCH}"
-
 CFLAGS:append:versal = " -Dversal "
 
 # OpenAMP apps not ready for Zynq
