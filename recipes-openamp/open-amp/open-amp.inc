@@ -15,11 +15,21 @@ BRANCH ?= "main"
 BRANCHARG = "${@['nobranch=1', 'branch=${BRANCH}'][d.getVar('BRANCH', True) != '']}"
 SRC_URI = "${REPO};${BRANCHARG}"
 
+# Skip processing of this recipe if it is not explicitly specified as the
+# PREFERRED_PROVIDER for open-amp. This avoids network access required by
+# the use of AUTOREV SRCREVs, which may be the default for some recipes.
+python () {
+    if (not d.getVar("PREFERRED_PROVIDER_open-amp") and "open-amp" != d.getVar("PN")) or \
+       (d.getVar("PREFERRED_PROVIDER_open-amp") and d.getVar("PREFERRED_PROVIDER_open-amp") != d.getVar("PN")):
+        d.delVar("BB_DONT_CACHE")
+        raise bb.parse.SkipRecipe("Set PREFERRED_PROVIDER_open-amp to %s to enable it" % (d.getVar("PN")))
+}
+
 S = "${WORKDIR}/git"
 
 DEPENDS = "libmetal"
 
-PROVIDES = "openamp"
+PROVIDES = "openamp open-amp"
 
 inherit pkgconfig cmake yocto-cmake-translation
 
@@ -55,10 +65,12 @@ do_generate_toolchain_file[postfuncs] += "rpmsg_no_ipi_setup"
 ALLOW_EMPTY_${PN}-demos = "1"
 PACKAGES:append = " ${PN}-demos"
 
+RPROVIDES:${PN} += "open-amp"
 FILES:${PN} = " \
     ${libdir}/*.so* \
 "
 
+RPROVIDES:${PN}-demos += "open-amp-demos"
 FILES:${PN}-demos = " \
     ${bindir}/*-shared \
 "
