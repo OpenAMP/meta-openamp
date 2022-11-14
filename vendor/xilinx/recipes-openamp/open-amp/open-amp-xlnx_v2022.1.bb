@@ -6,4 +6,4 @@ PV = "${SRCBRANCH}+git${SRCPV}"
 
 REPO = "git://github.com/Xilinx/open-amp.git;protocol=https"
 
-include open-amp.inc
+include ${LAYER_PATH_openamp-layer}/recipes-openamp/open-amp/open-amp.inc
