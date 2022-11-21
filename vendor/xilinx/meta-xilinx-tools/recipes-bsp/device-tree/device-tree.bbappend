@@ -1,6 +1,7 @@
 FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
 
 SRC_URI:append = " \
+    file://zynq-openamp.dtsi \
     file://zynqmp-openamp.dtsi \
     file://versal-openamp.dtsi \
 "
