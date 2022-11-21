@@ -6,11 +6,19 @@ SRC_URI:append = " \
 "
 
 do_configure:prepend:zynqmp() {
-	ln -sf ${WORKDIR}/zynqmp-openamp.dtsi ${WORKDIR}/openamp.dtsi
+	if [ ${ENABLE_OPENAMP_DTSI} = "1" ]; then
+		ln -sf ${WORKDIR}/zynqmp-openamp.dtsi ${WORKDIR}/openamp.dtsi
+	else
+		echo "ENABLE_OPENAMP_DTSI is not SET (${ENABLE_OPENAMP_DTSI})"
+	fi
 }
 
 do_configure:prepend:versal() {
-	ln -sf ${WORKDIR}/versal-openamp.dtsi ${WORKDIR}/openamp.dtsi
+	if [ ${ENABLE_OPENAMP_DTSI} = "1" ]; then
+		ln -sf ${WORKDIR}/versal-openamp.dtsi ${WORKDIR}/openamp.dtsi
+        else
+		echo "ENABLE_OPENAMP_DTSI is not SET (${ENABLE_OPENAMP_DTSI})"
+	fi
 }
 
 # openamp.dtsi is in the WORKDIR
