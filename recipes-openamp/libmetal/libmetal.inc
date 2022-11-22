@@ -53,10 +53,13 @@ ALLOW_EMPTY:${PN}-demos = "1"
 
 PACKAGES:append = " ${PN}-demos"
 
+RPROVIDES:${PN} += "libmetal"
 FILES:${PN} = " \
     ${libdir}/*.so* \
     ${bindir}/test-* \
 "
+
+RPROVIDES:${PN}-demos += "libmetal-demos"
 FILES:${PN}-demos = " \
     ${bindir}/libmetal_* \
     ${bindir}/*demo \
