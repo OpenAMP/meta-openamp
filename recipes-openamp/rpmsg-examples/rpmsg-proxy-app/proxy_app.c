@@ -420,6 +420,7 @@ int main(int argc, char *argv[])
 	int ret = 0;
 	char *user_fw_path = 0;
 	char rpmsg_dev_name[NAME_MAX];
+	char rpmsg_ctrl_dev_name[NAME_MAX] = "virtio0.rpmsg_ctrl.0.0";
 	char rpmsg_char_name[16];
 	int rpmsg_char_fd = -1;
 	int ept_fd = -1;
@@ -488,10 +489,16 @@ int main(int argc, char *argv[])
 	ret = bind_rpmsg_chrdev(rpmsg_dev_name);
 	if (ret < 0)
 		goto error0;
-	rpmsg_char_fd = get_rpmsg_chrdev_fd(rpmsg_dev_name, rpmsg_char_name);
+
+	/* The Linux kernel version >= 6.0 uses rpmsg_ctrl from virtio*.rpmsg_ctrl* dir */
+	rpmsg_char_fd = get_rpmsg_chrdev_fd(rpmsg_ctrl_dev_name, rpmsg_char_name);
 	if (rpmsg_char_fd < 0) {
-		ret = rpmsg_char_fd;
-		goto error0;
+		/* may be the Linux kernel version is < 6.0, look for previous interface */
+		rpmsg_char_fd = get_rpmsg_chrdev_fd(rpmsg_dev_name, rpmsg_char_name);
+		if (rpmsg_char_fd < 0) {
+			ret = rpmsg_char_fd;
+			goto error0;
+		}
 	}
 
 	/* Create endpoint from rpmsg char driver */

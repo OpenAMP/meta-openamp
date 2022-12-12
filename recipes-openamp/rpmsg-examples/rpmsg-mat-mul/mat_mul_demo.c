@@ -288,6 +288,7 @@ int main(int argc, char *argv[])
 	int ntimes = 1;
 	int opt, ret;
 	char rpmsg_dev[NAME_MAX] = "virtio0.rpmsg-openamp-demo-channel.-1.0";
+	char rpmsg_ctrl_dev_name[NAME_MAX] = "virtio0.rpmsg_ctrl.0.0";
 	char rpmsg_char_name[16];
 	char fpath[2*NAME_MAX];
 	struct rpmsg_endpoint_info eptinfo = {
@@ -336,9 +337,15 @@ int main(int argc, char *argv[])
 	ret = bind_rpmsg_chrdev(rpmsg_dev);
 	if (ret < 0)
 		return ret;
-	charfd = get_rpmsg_chrdev_fd(rpmsg_dev, rpmsg_char_name);
-	if (charfd < 0)
-		return charfd;
+
+	/* The Linux kernel >= 6.0 expects rpmsg_ctrl interface under virtio*.rpmsg_ctrl*.* dir */
+	charfd = get_rpmsg_chrdev_fd(rpmsg_ctrl_dev_name, rpmsg_char_name);
+	if (charfd < 0) {
+		/* look for previous interface */
+		charfd = get_rpmsg_chrdev_fd(rpmsg_dev, rpmsg_char_name);
+		if (charfd < 0)
+			return charfd;
+	}
 
 	/* Create endpoint from rpmsg char driver */
 	PR_DBG("rpmsg_create_ept: %s[src=%#x,dst=%#x]\n",
