@@ -1,20 +1,13 @@
 SUMMARY = "RPMsg examples: echo test demo"
 
-LICENSE = "BSD-3-Clause"
-LIC_FILES_CHKSUM = "file://LICENSE;md5=b30cbe0b980e98bfd9759b1e6ba3d107"
+include rpmsg-example.inc
 
-SRC_URI = "\
-	file://LICENSE \
-	file://Makefile \
-	file://echo_test.c \
-	"
-
-S = "${WORKDIR}"
+S = "${WORKDIR}/git/examples/linux/rpmsg-echo-test"
 
 RRECOMMENDS:${PN} = "kernel-module-rpmsg-char"
 
 FILES:${PN} = "\
-	/usr/bin/echo_test\
+	/usr/bin/echo_test \
 "
 
 do_install () {
