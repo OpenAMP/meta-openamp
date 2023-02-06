@@ -9,8 +9,8 @@ BRANCH = "main"
 
 # this sets the default SRCREV for all rpmsg examples
 # you can set it in local.conf to "${AUTOREV}" to get the tip of main
-# This hash is tip of main as of 2022/11/16 (still tip on 11/20)
-OPENAMP_SYS_REF_SRCREV ?= "15550e1f1e1437dde5f8c22e01b488de641ec19e"
+# This hash is tip of main as of 2023/2/6
+OPENAMP_SYS_REF_SRCREV ?= "7f1fb3b84edc1b3eab62a7ade7f88e99f7e78b93"
 
 SRC_URI = "${REPO};branch=${BRANCH};"
 SRCREV  = "${OPENAMP_SYS_REF_SRCREV}"
