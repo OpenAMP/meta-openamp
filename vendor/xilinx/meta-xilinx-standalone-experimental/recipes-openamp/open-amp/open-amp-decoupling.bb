@@ -1,98 +1,84 @@
 SUMMARY = "Libopen_amp : Libmetal implements an abstraction layer across user-space Linux, baremetal, and RTOS environments"
 
-HOMEPAGE = "https://github.com/OpenAMP/open-amp/"
+include ${LAYER_PATH_openamp-layer}/recipes-openamp/open-amp/open-amp.inc
+require ${LAYER_PATH_openamp-layer}/vendor/xilinx/recipes-openamp/open-amp/open-amp-xlnx.inc
 
-SECTION = "libs"
-
-LICENSE = "BSD"
-LIC_FILES_CHKSUM ?= "file://LICENSE.md;md5=0e6d7bfe689fe5b0d0a89b2ccbe053fa"
-
-SRC_URI = "git://gitenterprise.xilinx.com/OpenAMP/open-amp.git;protocol=https;branch=xlnx_decoupling"
-SRCREV = "0720f88f065f11d2223cde4c790a7f35bbcc098a"
+SRCREV = "7513776e35225ce604773b6d42316a93ef544c60"
+BRANCH = "main"
+SRCBRANCH = "${BRANCH}"
+PV = "${SRCBRANCH}+git${SRCPV}"
+LIC_FILES_CHKSUM = "file://LICENSE.md;md5=ab88daf995c0bd0071c2e1e55f3d3505"
 
 S = "${WORKDIR}/git"
 
 DEPENDS = "libmetal"
-
-PROVIDES = "openamp"
-
-inherit python3native pkgconfig cmake yocto-cmake-translation
-
-OPENAMP_MACHINE:versal = "zynqmp"
-OPENAMP_MACHINE ?= "${@get_cmake_machine(d.getVar('TARGET_OS'), d.getVar('TUNE_ARCH'), d.getVar('SOC_FAMILY'), d)}"
-EXTRA_OECMAKE = " \
-	-DLIB_INSTALL_DIR=${libdir} \
-	-DLIBEXEC_INSTALL_DIR=${libexecdir} \
-	-DMACHINE=${OPENAMP_MACHINE} \
-	"
-
+COMPATIBLE_HOST = ".*"
 SOC_FAMILY_ARCH ??= "${TUNE_PKGARCH}"
 PACKAGE_ARCH = "${SOC_FAMILY_ARCH}"
 
-CFLAGS:append:versal = " -Dversal -O1 "
-# OpenAMP apps not ready for Zynq
-EXTRA_OECMAKE:append:zynqmp = "-DWITH_APPS=ON -DWITH_PROXY=on -DWITH_PROXY_APPS=on "
-EXTRA_OECMAKE:append:versal = "-DWITH_APPS=ON -DWITH_PROXY=on -DWITH_PROXY_APPS=on "
+DEPENDS:append = " python3-pyyaml-native python3-dtc-native lopper-native "
+FILESEXTRAPATHS:prepend := "${THISDIR}/overlays:"
 
-ALLOW_EMPTY:${PN}-demos = "1"
-PACKAGES:append = " ${PN}-demos"
-
-FILES:${PN} = " \
-    ${libdir}/*.so* \
-"
-
-FILES:${PN}-demos = " \
-    ${bindir}/*-shared \
-"
-do_install:append () {
-	# Only install echo test client, matrix multiplication client,
-	# and proxy app server for ZynqMP
-	rm -rf ${D}/${bindir}/*-static
-}
-
-
-
-
-DEPENDS:append = " lopper-native  "
-FILESEXTRAPATHS:append := ":${THISDIR}/overlays"
-SRC_URI:append = " \
-     file://openamp-overlay-kernel.yaml \
-          "
+OPENAMP_YAML = "openamp-overlay-${SOC_FAMILY}.yaml"
+SRC_URI:append = "  file://${OPENAMP_YAML} "
+OPENAMP_OVERLAY ?= "${S}/../${OPENAMP_YAML}"
 
 # We need the deployed output
 do_configure[depends] += " lopper-native:do_install"
 
-PROVIDES = "openamp"
+inherit pkgconfig cmake yocto-cmake-translation python3-dir
 
-inherit pkgconfig cmake yocto-cmake-translation
-
-LOPS_DIR="${PYTHON_SITEPACKAGES_DIR}/lopper/lops/"
-OVERLAY ?= "${S}/../openamp-overlay-kernel.yaml"
+LOPS_DIR="${RECIPE_SYSROOT_NATIVE}/${PYTHON_SITEPACKAGES_DIR}/lopper/lops/"
 CHANNEL_INFO_FILE = "openamp-channel-info.txt"
 LOPPER_OPENAMP_OUT_DTB = "${WORKDIR}/openamp-lopper-output.dtb"
+OPENAMP_DTFILE = "${SYSTEM_DTFILE}"
 
 LINUX_CORE:versal = "a72"
 LINUX_CORE:zynqmp = "a53"
 
-OPENAMP_LOPPER_INPUTS:linux = " \
-    -i ${LOPS_DIR}/lop-${LINUX_CORE}-imux.dts \
-    -i ${OVERLAY} \
-    -i ${LOPS_DIR}/lop-xlate-yaml.dts \
-    -i ${LOPS_DIR}/lop-load.dts \
-    -i ${LOPS_DIR}/lop-openamp-versal.dts \
-    -i ${LOPS_DIR}/lop-domain-${LINUX_CORE}.dts "
+# The order of lops is as follows:
+# 1. lop-load - This must be run first to ensure enabled lops and plugins
+#    can be used.
+# 2. lop-xlate-yaml - Ensure any following lops can be YAML
+# 3. imux - This is used to make sure the imux node has correct
+#    interrupt parent and interrupt-multiplex node is trimmed. This is
+#    present for all Xilinx Lopper runs, with or without OpenAMP. This
+#    is done first for all lop runs as the imux node may be referenced by
+#    later plugins.
+# 4. domain - domain processing should be done before OpenAMP as there
+#    can be nodes that are stripped out or modified based on the domain.
+# 5. OpenAMP - This lopper processing is done on top of the domain as
+#    noted due to domain reasons above.
+# 6. domain-prune - Only prune files AFTER all other processing is complete
+#    so that a lopper plugin or lop does not inadvertently process a
+#    non-existent node.
+OPENAMP_LOPPER_INPUTS:zynqmp:linux = "            \
+    -i ${LOPS_DIR}/lop-a53-imux.dts               \
+    -i ${LOPS_DIR}/lop-domain-linux-a53.dts       \
+    -i ${LOPS_DIR}/lop-openamp-versal.dts         \
+    -i ${LOPS_DIR}/lop-domain-linux-a53-prune.dts "
+
+OPENAMP_LOPPER_INPUTS:versal:linux = "      \
+    -i ${LOPS_DIR}/lop-a72-imux.dts         \
+    -i ${LOPS_DIR}/lop-domain-a72.dts      \
+    -i ${LOPS_DIR}/lop-openamp-versal.dts  \
+    -i ${LOPS_DIR}/lop-domain-a72-prune.dts "
 
 do_run_lopper() {
     cd ${WORKDIR}
 
     lopper -f -v --enhanced  --permissive \
+    -i ${OPENAMP_OVERLAY}		  \
+    -i ${LOPS_DIR}/lop-load.dts           \
+    -i ${LOPS_DIR}/lop-xlate-yaml.dts     \
     ${OPENAMP_LOPPER_INPUTS} \
-    ${SYSTEM_DTFILE} \
+    ${OPENAMP_DTFILE} \
     ${LOPPER_OPENAMP_OUT_DTB}
 
     cd -
 }
 
+do_run_lopper[depends] += " lopper-native:do_install"
 addtask run_lopper before do_generate_toolchain_file
 addtask run_lopper after do_prepare_recipe_sysroot
 
@@ -126,29 +112,27 @@ python do_set_openamp_cmake_vars() {
     def get_ipi_str(val):
         return "\""+val.replace('0x','').lower() +'.ipi'+"\""
 
-    CHANNEL0GROUP = parse_channel_info('CHANNEL0_TO_GROUP', d)
-
     if d.getVar('OPENAMP_HOST') == "1":
-        IPI_DEV_NAME =       parse_channel_info( CHANNEL0GROUP + "-HOST-IPI", d)
+        IPI_DEV_NAME =       parse_channel_info( "CHANNEL0TO_HOST", d)
         IPI_DEV_NAME = get_ipi_str( IPI_DEV_NAME )
 
-        IPI_CHN_BITMASK  = parse_channel_info( CHANNEL0GROUP + "-REMOTE-IPI-IRQ-VECT-ID", d)
+        IPI_CHN_BITMASK  = parse_channel_info( "CHANNEL0TO_REMOTE", d)
 
-        ELFLOADBASE =     parse_channel_info( CHANNEL0GROUP+"ELFLOAD_BASE", d)
-        RSC_MEM_PA     = get_rsc_mem_pa( ELFLOADBASE )
+        ELFLOADBASE =     parse_channel_info( "CHANNEL0ELFBASE", d)
+        RSC_MEM_PA  = ELFLOADBASE
         SHM_DEV_NAME   = get_rsc_mem_pa_str( RSC_MEM_PA )
 
         RSC_MEM_SIZE = "0x2000UL"
 
-        VRING_MEM_PA = parse_channel_info( CHANNEL0GROUP+"-RX", d)
-        VDEV0VRING0SIZE = parse_channel_info( CHANNEL0GROUP+"VDEV0VRING0_SIZE", d)
-        VDEV0VRING1SIZE = parse_channel_info( CHANNEL0GROUP+"VDEV0VRING1_SIZE", d)
-        VRING_MEM_SIZE = get_sum( VDEV0VRING0SIZE, VDEV0VRING1SIZE )
+        VRING_MEM_PA = parse_channel_info( "CHANNEL0VRING0BASE", d)
+        VDEV0VRING0SIZE = parse_channel_info( "CHANNEL0VRING0SIZE", d)
+        VDEV0VRING1SIZE = parse_channel_info( "CHANNEL0VRING1SIZE", d)
+        VRING_MEM_SIZE = hex( int(VDEV0VRING0SIZE,16) + int(VDEV0VRING1SIZE, 16) )
 
-        VDEV0BUFFERBASE = parse_channel_info( CHANNEL0GROUP+"VDEV0BUFFER_BASE", d)
+        VDEV0BUFFERBASE = parse_channel_info( "CHANNEL0VDEV0BUFFERBASE", d)
         SHARED_BUF_PA = VDEV0BUFFERBASE
 
-        VDEV0BUFFERSIZE = parse_channel_info( CHANNEL0GROUP+"VDEV0BUFFER_SIZE", d)
+        VDEV0BUFFERSIZE = parse_channel_info( "CHANNEL0VDEV0BUFFERSIZE", d)
         SHARED_BUF_SIZE = VDEV0BUFFERSIZE
 
         d.setVar("IPI_DEV_NAME", IPI_DEV_NAME)

@@ -1,47 +1,35 @@
 LICENSE = "BSD"
-LIC_FILES_CHKSUM = "file://LICENSE.md;md5=0e6d7bfe689fe5b0d0a89b2ccbe053fa"
-SRC_URI:armv7r:xilinx-standalone = "git://gitenterprise.xilinx.com/OpenAMP/open-amp.git;branch=xlnx_decoupling"
+LIC_FILES_CHKSUM ?= "file://LICENSE.md;md5=0e6d7bfe689fe5b0d0a89b2ccbe053fa"
 
-SRCREV = "0720f88f065f11d2223cde4c790a7f35bbcc098a"
+include ${LAYER_PATH_openamp-layer}/recipes-openamp/open-amp/open-amp.inc
+require ${LAYER_PATH_openamp-layer}/vendor/xilinx/recipes-openamp/open-amp/open-amp-xlnx.inc
 
-S = "${WORKDIR}/git"
-B = "${WORKDIR}/build"
-OECMAKE_SOURCEPATH = "${S}/"
-PROVIDES = "openamp"
-DEPENDS:append:armv7r:xilinx-standalone = " libmetal xilstandalone python3-pyyaml-native lopper-native python3-dtc-native  nativesdk-xilinx-lops "
+SRCREV = "7513776e35225ce604773b6d42316a93ef544c60"
+BRANCH = "main"
+SRCBRANCH = "${BRANCH}"
+PV = "${SRCBRANCH}+git${SRCPV}"
+LIC_FILES_CHKSUM = "file://LICENSE.md;md5=ab88daf995c0bd0071c2e1e55f3d3505"
+
+#S = "${WORKDIR}/git"
+#B = "${WORKDIR}/build"
+#OECMAKE_SOURCEPATH = "${S}/"
+DEPENDS:append:armv7r:xilinx-standalone = " libmetal xilstandalone python3-pyyaml-native lopper-native python3-dtc-native  "
 DTS_FILE = "/scratch/decoupling/lopper/lopper-sdt.dtb"
-FILESEXTRAPATHS:append := ":${THISDIR}/overlays"
-SRC_URI:append = " \
-     file://openamp-overlay-kernel.yaml \
-     "
+FILESEXTRAPATHS:prepend := "${THISDIR}/overlays:"
+SRC_URI:append:zynqmp = "  file://openamp-overlay-zynqmp.yaml "
+SRC_URI:append:versal = "  file://openamp-overlay-versal.yaml "
+OPENAMP_OVERLAY:zynqmp ?= "${S}/../openamp-overlay-zynqmp.yaml"
+OPENAMP_OVERLAY:versal ?= "${S}/../openamp-overlay-versal.yaml"
 
-inherit cmake deploy
-# We need the deployed output
-XLNX_STNDALONE_DO_CONFIGURE = ""
-XLNX_STNDALONE_DO_CONFIGURE:armv7r:xilinx-standalone = "device-tree-lops:do_deploy lopper-native:do_install"
-do_configure[depends] += "${XLNX_STNDALONE_DO_CONFIGURE}"
-
-XLNX_STNDALONE_DO_COMPILE = ""
-XLNX_STNDALONE_DO_COMPILE:armv7r:xilinx-standalone = "device-tree-lops:do_deploy"
-do_compile[depends] += "${XLNX_STNDALONE_DO_COMPILE}"
-
-XLNX_STNDALONE_DO_INSTALL = ""
-XLNX_STNDALONE_DO_INSTALL:armv7r:xilinx-standalone = "device-tree-lops:do_deploy"
-do_install[depends] += "${XLNX_STNDALONE_DO_INSTALL}"
+inherit cmake deploy python3-dir features_check
 
 BB_STRICT_CHECKSUM = "0"
-
-
-EXTRA_OECMAKE = " \
-       -DLIB_INSTALL_DIR=${libdir} \
-       -DSOC_FAMILY="${SOC_FAMILY}" \
-       "
-
+EXTRA_OECMAKE:append = " -DSOC_FAMILY=\"${SOC_FAMILY}\" "
 COMPATIBLE_HOST = ".*-elf"
 COMPATIBLE_HOST:arm = "[^-]*-[^-]*-eabi"
-
 OPENAMP_CMAKE_MACHINE:versal = "Versal"
 OPENAMP_CMAKE_MACHINE:zynqmp = "Zynqmp"
+OPENAMP_MACHINE = "zynqmp_r5"
 
 def get_cross_prefix(oe_cmake_c_compiler):
   if oe_cmake_c_compiler == 'arm-xilinx-eabi-gcc':
@@ -49,41 +37,28 @@ def get_cross_prefix(oe_cmake_c_compiler):
 
 OPENAMP_CROSS_PREFIX:armv7r:xilinx-standalone = "${@get_cross_prefix(d.getVar('OECMAKE_C_COMPILER'))}"
 
-def get_openamp_machine(soc_family):
-  if soc_family in ['versal']:
-    return 'zynqmp_r5'
-  return ''
-
-
-OPENAMP_MACHINE = "${@get_openamp_machine(d.getVar('SOC_FAMILY'))}"
-
-
-ALLOW_EMPTY:${PN}-demos = "1"
-PACKAGES:append = " ${PN}-demos"
-EXTRA_OECMAKE:append = "-DWITH_APPS=ON "
-
 REQUIRED_DISTRO_FEATURES:armv7r:xilinx-standalone = "${DISTRO_FEATURES}"
-PACKAGECONFIG:armv7r:xilinx-standalone ?= "${DISTRO_FEATURES} ${MACHINE_FEATURES}"
 
 FILES:${PN}-demos:armv7r:xilinx-standalone = " \
     ${base_libdir}/firmware/*\.out \
+    ${bindir}/*out \
 "
 
-LOPS_DIR="${PYTHON_SITEPACKAGES_DIR}/lopper/lops/"
-OVERLAY ?= "${S}/../openamp-overlay-kernel.yaml"
-
+LOPS_DIR="${RECIPE_SYSROOT_NATIVE}/${PYTHON_SITEPACKAGES_DIR}/lopper/lops/"
 CHANNEL_INFO_FILE = "openamp-channel-info.txt"
-
 PACKAGE_DEBUG_SPLIT_STYLE:armv7r:xilinx-standalone='debug-file-directory'
 INHIBIT_PACKAGE_STRIP:armv7r:xilinx-standalone = '1'
 INHIBIT_PACKAGE_DEBUG_SPLIT:armv7r:xilinx-standalone = '1'
 PACKAGE_MINIDEBUGINFO:armv7r:xilinx-standalone = '1'
 
+LOPPER_OPENAMP_OUT_DTB = "${WORKDIR}/openamp-lopper-output.dtb"
+OPENAMP_DTFILE = "${SYSTEM_DTFILE}"
+
 do_run_lopper() {
     cd ${WORKDIR}
 
     lopper -f -v --enhanced  --permissive \
-    -i ${OVERLAY} \
+    -i ${OPENAMP_OVERLAY} \
     -i ${LOPS_DIR}/lop-xlate-yaml.dts \
     -i ${LOPS_DIR}/lop-load.dts \
     -i ${LOPS_DIR}/lop-openamp-versal.dts \
@@ -128,42 +103,39 @@ python do_set_openamp_cmake_vars() {
     def get_ipi_str(val):
         return val.replace('0x','') +'.ipi'
 
-    CHANNEL0GROUP = parse_channel_info('CHANNEL0_TO_GROUP', d)
-
-    HOSTBITMASK =   parse_channel_info( CHANNEL0GROUP + "-HOST-BITMASK", d)
-    HOSTIPI =       parse_channel_info( CHANNEL0GROUP + "-HOST-IPI", d)
-    REMOTEBITMASK = parse_channel_info( CHANNEL0GROUP + "-HOST-BITMASK", d)
-    REMOTEIPI =         parse_channel_info( CHANNEL0GROUP + "-REMOTE-IPI", d)
-    HOST_IRQVECTID    = parse_channel_info( CHANNEL0GROUP + "-HOST-IPI-IRQ-VECT-ID", d)
-    REMOTE_IRQVECTID  = parse_channel_info( CHANNEL0GROUP + "-REMOTE-IPI-IRQ-VECT-ID", d)
+    HOSTBITMASK =   parse_channel_info(  "CHANNEL0TO_HOST-BITMASK", d)
+    HOSTIPI =       parse_channel_info(  "CHANNEL0TO_HOST", d)
+    REMOTEBITMASK = parse_channel_info(  "CHANNEL0TO_REMOTE-BITMASK", d)
+    REMOTEIPI =         parse_channel_info("CHANNEL0TO_REMOTE", d)
+    HOST_IRQVECTID    = parse_channel_info("CHANNEL0TO_HOST-IPIIRQVECTID", d)
+    REMOTE_IRQVECTID  = parse_channel_info("CHANNEL0TO_REMOTE-IPIIRQVECTID", d)
 
     IPI_DEV_NAME = get_ipi_str( HOSTIPI )
 
-    ELFLOADBASE =     parse_channel_info( CHANNEL0GROUP+"ELFLOAD_BASE", d)
-    ELFLOADSIZE =     parse_channel_info( CHANNEL0GROUP+"ELFLOAD_SIZE", d)
-    VDEV0BUFFERBASE = parse_channel_info( CHANNEL0GROUP+"VDEV0BUFFER_BASE", d)
-    VDEV0BUFFERSIZE = parse_channel_info( CHANNEL0GROUP+"VDEV0BUFFER_SIZE", d)
-    VDEV0VRING0BASE = parse_channel_info( CHANNEL0GROUP+"VDEV0VRING0_BASE", d)
-    VDEV0VRING0SIZE = parse_channel_info( CHANNEL0GROUP+"VDEV0VRING0_SIZE", d)
-    VDEV0VRING1BASE = parse_channel_info( CHANNEL0GROUP+"VDEV0VRING1_BASE", d)
-    VDEV0VRING1SIZE = parse_channel_info( CHANNEL0GROUP+"VDEV0VRING1_SIZE", d)
-    TX =              parse_channel_info( CHANNEL0GROUP+"-TX", d)
-    RX =              parse_channel_info( CHANNEL0GROUP+"-RX", d)
+    ELFLOADBASE =     parse_channel_info( "CHANNEL0ELFBASE", d)
+    ELFLOADSIZE =     parse_channel_info( "CHANNEL0ELFSIZE", d)
+    VDEV0BUFFERBASE = parse_channel_info( "CHANNEL0VDEV0BUFFERBASE", d)
+    VDEV0BUFFERSIZE = parse_channel_info( "CHANNEL0VDEV0BUFFERSIZE", d)
+    VDEV0VRING0BASE = parse_channel_info( "CHANNEL0VRING0BASE", d)
+    VDEV0VRING0SIZE = parse_channel_info( "CHANNEL0VRING0SIZE" , d)
+    VDEV0VRING1BASE = parse_channel_info( "CHANNEL0VRING1BASE", d)
+    VDEV0VRING1SIZE = parse_channel_info( "CHANNEL0VRING1SIZE", d)
+    TX =              parse_channel_info( "CHANNEL0VDEV0BUFFERTX", d)
+    RX =              parse_channel_info( "CHANNEL0VDEV0BUFFERRX", d)
 
-    VRING_MEM_SIZE = get_vring_mem_size( VDEV0VRING0SIZE, VDEV0VRING1SIZE )
+    VRING_MEM_SIZE = hex( int(VDEV0VRING0SIZE,16) + int(VDEV0VRING1SIZE, 16) )
+
     RSC_MEM_PA     = get_rsc_mem_pa( ELFLOADBASE )
     SHM_DEV_NAME   = get_rsc_mem_pa_str( RSC_MEM_PA )
 
     d.setVar("RING_RX",            RX)
     d.setVar("RING_TX",            TX)
     d.setVar("SHARED_MEM_PA",      VDEV0VRING0BASE)
-    d.setVar("SHARED_MEM_SIZE",    VDEV0BUFFERSIZE)
     d.setVar("SHARED_BUF_OFFSET",  VRING_MEM_SIZE)
     d.setVar("HOSTBITMASK",        REMOTEBITMASK)
     d.setVar("POLL_BASE_ADDR",     REMOTEIPI)
     d.setVar("IPI_CHN_BITMASK",    HOSTBITMASK)
     d.setVar("IPI_IRQ_VECT_ID",    REMOTE_IRQVECTID)
-    d.setVar("SHARED_MEM_PA",      VDEV0VRING0BASE)
     d.setVar("SHARED_MEM_SIZE",    VDEV0BUFFERSIZE)
     d.setVar("SHARED_BUF_OFFSET",  VRING_MEM_SIZE)
 
@@ -181,10 +153,10 @@ python openamp_toolchain_file_setup() {
     # generate boilerplate for toolchain file
     lines = [
       "set( CMAKE_SYSTEM_PROCESSOR \"" + d.getVar("TRANSLATED_TARGET_ARCH") + "\" )",
-      "set( MACHINE \""                + d.getVar("OPENAMP_MACHINE")        + "\" )",
-      "set( CMAKE_MACHINE \""          + d.getVar("OPENAMP_CMAKE_MACHINE")  + "\" )",
       "set( CMAKE_C_ARCHIVE_CREATE \"<CMAKE_AR> qcs <TARGET> <LINK_FLAGS> <OBJECTS>\")",
       "set( CMAKE_SYSTEM_NAME \"Generic\")",
+      "set( MACHINE \"zynqmp_r5\")",
+
       "set( CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER CACHE STRING \"\")",
       "set (CMAKE_FIND_ROOT_PATH_MODE_LIBRARY NEVER CACHE STRING \"\")",
       "set (CMAKE_FIND_ROOT_PATH_MODE_INCLUDE NEVER CACHE STRING \"\")",
@@ -206,6 +178,8 @@ python openamp_toolchain_file_setup() {
         defs += " -D" + cv + "=" + d.getVar(cv)
 
     toolchain_file.write("add_definitions( " + defs + " )")
+    toolchain_file.write("\n")
+    toolchain_file.write("add_definitions( -DMACHINE=\"zynqmp_r5\" -DCMAKE_MACHINE=\"zynqmp_r5\"  )")
 }
 
 do_generate_toolchain_file[postfuncs] += "openamp_toolchain_file_setup"
