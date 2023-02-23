@@ -1,55 +1,37 @@
 require ${LAYER_PATH_openamp-layer}/recipes-openamp/libmetal/libmetal.inc
 
-SRCREV = "7e6ac3f659724204fd5917952fafb74478c39e43"
 S = "${WORKDIR}/git"
 B = "${WORKDIR}/build"
 
-SRC_URI:armv7r:xilinx-standalone = "git://gitenterprise.xilinx.com/OpenAMP/libmetal.git;branch=xlnx_decoupling"
-
+SRCREV = "964149ba2153eb6004ecd4bb8af461fbb227a76d"
+SRCBRANCH = "xlnx_decoupling"
+BRANCH = "xlnx_decoupling"
+REPO = "git://gitenterprise.xilinx.com/OpenAMP/libmetal.git;protocol=https"
+PV = "${SRCBRANCH}+git${SRCPV}"
+LIC_FILES_CHKSUM = "file://LICENSE.md;md5=1ff609e96fc79b87da48a837cbe5db33"
 OECMAKE_SOURCEPATH = "${S}/"
 PROVIDES:armv7r:xilinx-standalone = "libmetal "
-DEPENDS:append:armv7r:xilinx-standalone = " libxil scugic doxygen-native xilstandalone"
+DEPENDS:append:armv7r:xilinx-standalone = " libxil scugic doxygen-native xilstandalone nativesdk-xilinx-lops "
+DEPENDS:remove = "sysfsutils eudev"
 inherit cmake
-LICENSE = "BSD"
-LIC_FILES_CHKSUM = "file://LICENSE.md;md5=1ff609e96fc79b87da48a837cbe5db33"
-
-XLNX_STNDALONE_DO_CONFIGURE = ""
-XLNX_STNDALONE_DO_CONFIGURE:armv7r:xilinx-standalone = "device-tree-lops:do_deploy"
-do_configure[depends] += "${XLNX_STNDALONE_DO_CONFIGURE}"
+LIC_FILES_CHKSUM ?= "file://LICENSE.md;md5=0e6d7bfe689fe5b0d0a89b2ccbe053fa"
 
 EXTRA_OECMAKE:armv7r:xilinx-standalone = " \
-	-DLIB_INSTALL_DIR=${libdir} \
 	-DSOC_FAMILY="${SOC_FAMILY}" \
-	-DWITH_EXAMPLES=ON \
+	-DWITH_EXAMPLES=OFF \
 	-DWITH_DOCS=OFF \
 "
+TUNE_CCARGS:append =  "EXTRA-mfloat-abi=soft -mcpu=cortex-r5 -Wall -Werror -Wextra -flto -Os"
 
 ALLOW_EMPTY:${PN}-demos = "1"
-
-FILES:${PN}-demos:armv7r:xilinx-standalone = " \
-    ${bindir}/libmetal_* \
-    ${bindir}/*ocm_demo.elf \
-"
 
 COMPATIBLE_HOST = ".*-elf"
 COMPATIBLE_HOST:arm = "[^-]*-[^-]*-eabi"
 
 LIBMETAL_CMAKE_MACHINE:versal = "Versal"
 LIBMETAL_CMAKE_MACHINE:zynqmp = "Zynqmp"
-
-def get_cross_prefix(oe_cmake_c_compiler):
-  if oe_cmake_c_compiler == 'arm-xilinx-eabi-gcc':
-    return 'arm-xilinx-eabi-'
-
-LIBMETAL_CROSS_PREFIX:armv7r:xilinx-standalone = "${@get_cross_prefix(d.getVar('OECMAKE_C_COMPILER'))}"
-
-def get_libmetal_machine(soc_family):
-  if soc_family in ['versal']:
-    return 'zynqmp_r5'
-  return ''
-
-
-LIBMETAL_MACHINE:armv7r:xilinx-standalone = "${@get_libmetal_machine(d.getVar('SOC_FAMILY'))}"
+LIBMETAL_CROSS_PREFIX:armv7r:xilinx-standalone = "arm-xilinx-eabi-"
+LIBMETAL_MACHINE = "zynqmp_r5"
 
 cmake_do_generate_toolchain_file:armv7r:xilinx-standalone:append() {
     cat >> ${WORKDIR}/toolchain.cmake <<EOF
@@ -70,17 +52,7 @@ cmake_do_generate_toolchain_file:armv7r:xilinx-standalone:append() {
     SET(CMAKE_C_ARCHIVE_FINISH   true)
     set (CMAKE_INCLUDE_PATH "${S}/../recipe-sysroot/usr/include/" CACHE STRING "")
     include (cross-generic-gcc)
-    add_definitions(-DWITH_DOC=OFF)
+    add_definitions(-DWITH_DOC=OFF -DWITH_EXAMPLES=OFF)
+    set (CMAKE_C_FLAGS          "-mfloat-abi=soft -mcpu=cortex-r5 " CACHE STRING "")
 EOF
 }
-
-# deploy for other recipes
-DEPLOY_MACHINE = "${@ d.getVar('MACHINE_ARCH').replace('_','-') }"
-SHOULD_DEPLOY = "${@'true' if ( 'Standalone' in  d.getVar('DISTRO_NAME') ) else 'false'}"
-do_deploy() {
-    echo "get the following: ";
-    if ${SHOULD_DEPLOY}; then
-        install -Dm 0644 ${D}/usr/bin/*.elf ${DEPLOY_DIR}/images/${DEPLOY_MACHINE}/
-    fi
-}
-addtask deploy before do_build after do_install
