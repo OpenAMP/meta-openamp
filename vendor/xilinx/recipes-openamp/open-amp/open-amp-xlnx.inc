@@ -1,6 +1,7 @@
 OPENAMP_MACHINE:versal = "zynqmp"
 
 CFLAGS:append:versal = " -Dversal "
+CFLAGS:append:versal-net = " -DVERSAL_NET "
 
 # OpenAMP apps not ready for Zynq
 EXTRA_OECMAKE:append:zynqmp = " -DWITH_APPS=ON"
