@@ -5,12 +5,19 @@ LICENSE = "BSD-3-Clause"
 LIC_FILES_CHKSUM = "file://${WORKDIR}/git/LICENSE.md;md5=0b96a4c07d631aa5141bd3f058ba43b0"
 
 REPO = "git://github.com/OpenAMP/openamp-system-reference;protocol=https"
-BRANCH = "main"
 
-# this sets the default SRCREV for all rpmsg examples
-# you can set it in local.conf to "${AUTOREV}" to get the tip of main
-# This hash is tip of main as of 2023/2/6
-OPENAMP_SYS_REF_SRCREV ?= "7f1fb3b84edc1b3eab62a7ade7f88e99f7e78b93"
+# this sets the default SRCREV and BRANCH for all rpmsg examples
+# if you wish to use the tip of main set the following in local.conf
+# OPENAMP_SYS_REF_SRCREV="${AUTOREV}"
+# OPENAMP_SYS_REF_BRANCH="main"
+#
+# These values select the commit tagged by v2023.10.0
+OPENAMP_SYS_REF_SRCREV ?= "3716dbba0154259d5efa3fa359313cce69cd163d"
+OPENAMP_SYS_REF_BRANCH ?= "v2023.10"
+
+# This include is used by multiple recipes
+# now set the variables for this recipe
+BRANCH  = "${OPENAMP_SYS_REF_BRANCH}"
+SRCREV  = "${OPENAMP_SYS_REF_SRCREV}"
 
 SRC_URI = "${REPO};branch=${BRANCH};"
-SRCREV  = "${OPENAMP_SYS_REF_SRCREV}"
