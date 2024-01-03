@@ -1,9 +1,9 @@
 definitions:
     OpenAMP:
          openamp_channel0_access_srams: &openamp_channel0_access_srams # used for access in each domain
-             - dev: CIPS_0_pspmc_0_psv_r5_0_atcm_global
+             - dev: CIPS_0_pspmc_0_psv_r5_1_atcm_global
                flags: 0
-             - dev: CIPS_0_pspmc_0_psv_r5_0_btcm_global
+             - dev: CIPS_0_pspmc_0_psv_r5_1_btcm_global
                flags: 0
 
          rproc0: &rproc0
@@ -26,12 +26,6 @@ definitions:
                size: 0x100000
                no-map: 1
 
-         openamp_channel1_access_srams: &openamp_channel1_access_srams # used for access in each domain
-             - dev: psv_r5_1_atcm_global
-               flags: 0
-             - dev: psv_r5_1_btcm_global
-               flags: 0
-
 domains:
     openamp_a72_0_cluster: # host in channel from a72-0 to r5-1 over channel 0
         compatible:
@@ -47,7 +41,6 @@ domains:
             - dev: ipi6  # used for Open AMP RPMsg IPC
               flags: 0
             - <<+: *openamp_channel0_access_srams
-            - <<+: *openamp_channel1_access_srams
 
         reserved-memory:
             ranges: true
@@ -58,17 +51,20 @@ domains:
             compatible: openamp,domain-to-domain-v1
             remoteproc-relation:
                 compatible: openamp,remoteproc-v1
-                remote: openamp_r5_0_cluster
+                remote:
+                     - openamp_r5_0_cluster
                 elfload:
-                    - CIPS_0_pspmc_0_psv_r5_0_atcm_global
-                    - CIPS_0_pspmc_0_psv_r5_0_btcm_global
+                    - CIPS_0_pspmc_0_psv_r5_1_atcm_global
+                    - CIPS_0_pspmc_0_psv_r5_1_btcm_global
                     - rproc0
 
             rpmsg-relation:
                 compatible: openamp,rpmsg-v1
                 openamp-xlnx-native: false # use native OpenAMP implementation
-                remote:  openamp_r5_0_cluster
-                mbox: ipi6
+                remote:
+                     - openamp_r5_0_cluster
+                mbox:
+                     - ipi6
                 carveouts:
                      - rpu0vdev0vring0
                      - rpu0vdev0vring1
@@ -83,7 +79,8 @@ domains:
               mode:
               secure: true
         access:
-            - dev: ipi4 # used for Open AMP RPMsg IPC
+            - dev:
+                - ipi4 # used for Open AMP RPMsg IPC
               flags: 0
             - <<+: *openamp_channel0_access_srams # TCM banks used for firmware memory
         reserved-memory:
@@ -94,8 +91,10 @@ domains:
              compatible: openamp,domain-to-domain-v1
              rpmsg-relation:
                  compatible: openamp,rpmsg-v1
-                 host: openamp_a72_0_cluster
-                 mbox: ipi4
+                 host: 
+                     - openamp_a72_0_cluster
+                 mbox:
+                     - ipi4
                  carveouts:
                      - rpu0vdev0vring0
                      - rpu0vdev0vring1
