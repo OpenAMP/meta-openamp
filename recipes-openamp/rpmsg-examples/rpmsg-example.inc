@@ -12,7 +12,7 @@ REPO = "git://github.com/OpenAMP/openamp-system-reference;protocol=https"
 # OPENAMP_SYS_REF_BRANCH="main"
 #
 # These values select the commit tagged by v2023.10.0
-OPENAMP_SYS_REF_SRCREV ?= "3716dbba0154259d5efa3fa359313cce69cd163d"
+OPENAMP_SYS_REF_SRCREV ?= "2c5d2064e45faf7e3a542d1232593beec40ff940"
 OPENAMP_SYS_REF_BRANCH ?= "v2023.10"
 
 # This include is used by multiple recipes
