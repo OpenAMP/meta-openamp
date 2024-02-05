@@ -37,7 +37,6 @@ LIBMETAL_DEMO ?= "OFF"
 
 EXTRA_OECMAKE:armv7r = "\
     -DWITH_EXAMPLES=${LIBMETAL_DEMO} \
-    -DSOC_FAMILY=${SOC_FAMILY} \
     "
 OECMAKE_C_LINK_FLAGS:append:xilinx-standalone = " -lxilstandalone -lscugic -lxiltimer -lgcc"
 
