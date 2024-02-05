@@ -146,6 +146,11 @@ do_run_lopper() {
     ${LOPPER_OPENAMP_OUT_DTB}
 
     cd -
+
+    if [ ! -f ${WORKDIR}/amd_platform_info.h ]; then
+        bberror "Unable to generate file amd_platform_info.h from OpenAMP Lopper run."
+        exit 1
+    fi
 }
 
 SOC_FAMILY_ARCH:linux ??= "${TUNE_PKGARCH}"
