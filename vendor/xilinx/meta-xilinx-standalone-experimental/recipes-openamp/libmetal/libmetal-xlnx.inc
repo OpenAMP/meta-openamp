@@ -38,6 +38,8 @@ LIBMETAL_DEMO ?= "OFF"
 EXTRA_OECMAKE:armv7r = "\
     -DWITH_EXAMPLES=${LIBMETAL_DEMO} \
     "
+
+CFLAGS:append = " -DSDT -DXLNX_PLATFORM "
 OECMAKE_C_LINK_FLAGS:append:xilinx-standalone = " -lxilstandalone -lscugic -lxiltimer -lgcc"
 
 FILES:${PN}:xilinx-standalone:append = " ${libdir}/*.a ${bindir}/*elf "
@@ -64,6 +66,5 @@ cmake_do_generate_toolchain_file:append:xilinx-standalone() {
     include (cross-${LIBMETAL_GCC_INCLUDE}-gcc)
     set (WITH_DOC OFF)
     set (DEMO_LINK_FLAGS "${DEMO_LINK_FLAGS}" CACHE STRING "")
-    add_definitions(-DSDT -DXLNX_PLATFORM)
 EOF
 }
