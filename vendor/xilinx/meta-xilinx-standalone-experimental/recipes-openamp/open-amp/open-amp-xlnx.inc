@@ -6,7 +6,6 @@ inherit ccmake cmake python3-dir deploy plnx-deploy
 
 LOPS_DIR="${RECIPE_SYSROOT_NATIVE}/${PYTHON_SITEPACKAGES_DIR}/lopper/lops/"
 OPENAMP_DTFILE ?= "${SYSTEM_DTFILE}"
-LOPPER_OPENAMP_OUT_DTB = "${WORKDIR}/openamp-lopper-output.dtb"
 
 EXTRA_OECMAKE:append = " -DYOCTO=ON "
 S = "${WORKDIR}/git"
@@ -131,6 +130,7 @@ do_run_set_lopper_targets() {
 	sed -i -e 's/psv_cortexa72_0/${LOP_LINUX_HOST}/g' ${LOPS_DIR}/lop-gen_domain_dts-invoke.dts
 }
 
+LOPPER_OPENAMP_OUT_DTB ?= "${WORKDIR}/openamp-lopper-output.dtb"
 addtask run_lopper after run_set_lopper_targets
 addtask run_lopper before do_generate_toolchain_file
 do_run_lopper() {
@@ -164,8 +164,6 @@ OPENAMP_MACHINE:xilinx-standalone = "zynqmp_r5"
 
 DEPLOY_MACHINE = "${@ d.getVar('MACHINE_ARCH').replace('_','-') }"
 STANDALONE_SHOULD_DEPLOY = "${@'true' if ( 'Standalone' in  d.getVar('DISTRO_NAME') ) else 'false'}" 
-LOPPER_OPENAMP_OUT_DTB ?= "${WORKDIR}/openamp-lopper-output.dtb"
-
 do_deploy() {
 	# remove existing DTB if applicable
 	if test -f ${DEPLOYDIR}${LOPPER_OPENAMP_OUT_DTB}; then
