@@ -26,7 +26,6 @@ OPENAMP_OVERLAY_DEFAULT:versal-net ??= "openamp-overlay-versal-net.yaml"
 OPENAMP_OVERLAY ?= "${OPENAMP_OVERLAY_DEFAULT}"
 SRC_URI:append = "  file://${OPENAMP_OVERLAY} "
 
-
 OECMAKE_C_LINK_FLAGS:xilinx-standalone:append = " --sysroot=${STAGING_DIR_HOST} "
 CFLAGS:append = " -DSDT -D_AMD_GENERATED_ "
 CFLAGS:xilinx-standalone:append = " -O3  -DXLNX_PLATFORM \
@@ -132,6 +131,7 @@ do_run_set_lopper_targets() {
 
 LOPPER_OPENAMP_OUT_DTB ?= "${WORKDIR}/openamp-lopper-output.dtb"
 addtask run_lopper after run_set_lopper_targets
+addtask run_lopper after do_fetch
 addtask run_lopper before do_generate_toolchain_file
 do_run_lopper() {
     export LOPPER_DTC_FLAGS="-b 0 -@"
