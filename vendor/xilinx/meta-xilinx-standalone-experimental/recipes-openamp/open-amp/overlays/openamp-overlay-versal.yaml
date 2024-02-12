@@ -1,9 +1,9 @@
 definitions:
     OpenAMP:
          openamp_channel0_access_srams: &openamp_channel0_access_srams # used for access in each domain
-             - dev: CIPS_0_pspmc_0_psv_r5_0_atcm_global
+             - dev: versal_cips_0_pspmc_0_psv_r5_0_atcm_global
                flags: 0
-             - dev: CIPS_0_pspmc_0_psv_r5_0_btcm_global
+             - dev: versal_cips_0_pspmc_0_psv_r5_0_btcm_global
                flags: 0
 
          rproc0: &rproc0
@@ -54,8 +54,8 @@ domains:
                 remote:
                      - openamp_r5_0_cluster
                 elfload:
-                    - CIPS_0_pspmc_0_psv_r5_0_atcm_global
-                    - CIPS_0_pspmc_0_psv_r5_0_btcm_global
+                    - versal_cips_0_pspmc_0_psv_r5_0_atcm_global
+                    - versal_cips_0_pspmc_0_psv_r5_0_btcm_global
                     - rproc0
 
             rpmsg-relation:
