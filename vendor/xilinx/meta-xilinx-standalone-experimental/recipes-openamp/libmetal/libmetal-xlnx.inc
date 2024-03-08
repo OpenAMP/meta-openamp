@@ -8,10 +8,10 @@ B:xilinx-standalone = "${WORKDIR}/build"
 OECMAKE_SOURCEPATH:xilinx-standalone = "${S}/"
 PROVIDES:xilinx-standalone = "libmetal"
 
-DEPENDS:xilinx-standalone:append = " doxygen-native xilstandalone nativesdk-xilinx-lops "
-DEPENDS:xilinx-standalone:arm:append = " scugic xiltimer "
+DEPENDS:xilinx-standalone:append = " doxygen-native xilstandalone scugic xiltimer libxil nativesdk-xilinx-lops "
 DEPENDS:xilinx-standalone:append:xilinx-freertos = " freertos10-xilinx "
-DEPENDS:xilinx-standalone:remove = " sysfsutils eudev "
+DEPENDS:remove:microblaze = " scugic xiltimer "
+DEPENDS:remove:xilinx-standalone = " sysfsutils eudev "
 
 COMPATIBLE_HOST:xilinx-standalone = ".*-elf"
 COMPATIBLE_HOST:xilinx-standalone:arm = "[^-]*-[^-]*-eabi"
