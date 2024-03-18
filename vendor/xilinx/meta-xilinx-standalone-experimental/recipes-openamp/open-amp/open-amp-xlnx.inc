@@ -143,12 +143,15 @@ do_run_lopper() {
     -i ${LOPS_DIR}/lop-xlate-yaml.dts     \
     -i ${LOPS_DIR}/lop-openamp-invoke.dts \
     ${OPENAMP_LOPPER_INPUTS} ${OPENAMP_DTFILE} \
-    ${LOPPER_OPENAMP_OUT_DTB}
+    ${LOPPER_OPENAMP_OUT_DTB} > do_run_lopper.log.txt
 
     cd -
 
     if [ ! -f ${WORKDIR}/amd_platform_info.h ]; then
-        bberror "Unable to generate file amd_platform_info.h from OpenAMP Lopper run."
+        bberror "Unable to generate file amd_platform_info.h from OpenAMP Lopper run. See Below log:"
+
+	out=$(cat ${WORKDIR}/do_run_lopper.log.txt)
+	bberror "$out"
         exit 1
     fi
 }
