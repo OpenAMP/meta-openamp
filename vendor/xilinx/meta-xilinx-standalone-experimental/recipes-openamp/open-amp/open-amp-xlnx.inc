@@ -2,7 +2,7 @@ PROVIDES:armv7r:xilinx-standalone = " open-amp open-amp-xlnx "
 RPROVIDES:${PN} += "open-amp"
 RPROVIDES:${PN}-demos += "open-amp-demos"
 
-inherit ccmake cmake python3-dir deploy plnx-deploy
+inherit ccmake cmake python3-dir deploy
 
 LOPS_DIR="${RECIPE_SYSROOT_NATIVE}/${PYTHON_SITEPACKAGES_DIR}/lopper/lops/"
 OPENAMP_DTFILE ?= "${SYSTEM_DTFILE}"
@@ -172,16 +172,7 @@ do_deploy() {
 	if test -f ${DEPLOYDIR}${LOPPER_OPENAMP_OUT_DTB}; then
 		rm ${DEPLOYDIR}${LOPPER_OPENAMP_OUT_DTB}
 	fi
-
 	install -Dm 0644 ${LOPPER_OPENAMP_OUT_DTB} ${DEPLOYDIR}
-
-	# remove existing DTB if applicable
-	if test -f ${PLNX_DEPLOY_DIR}${LOPPER_OPENAMP_OUT_DTB}; then
-		rm ${PLNX_DEPLOY_DIR}${LOPPER_OPENAMP_OUT_DTB}
-	fi
-
-	install -Dm 0644 ${LOPPER_OPENAMP_OUT_DTB} ${PLNX_DEPLOY_DIR}
-
 }
 
 do_deploy:armv7r() {
