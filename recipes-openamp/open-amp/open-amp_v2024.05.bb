@@ -1,0 +1,8 @@
+# SRCREV == v2024.05.1
+SRCREV = "856680eb99cee67dfff3d2e9c6d4ede3b7549895"
+BRANCH = "v2024.05"
+SRCBRANCH ?= "${BRANCH}"
+PV = "${SRCBRANCH}+git${SRCPV}"
+LIC_FILES_CHKSUM ?= "file://LICENSE.md;md5=ab88daf995c0bd0071c2e1e55f3d3505"
+
+include open-amp.inc
