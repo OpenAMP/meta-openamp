@@ -13,8 +13,4 @@ IMAGE_INSTALL:append = " \
     rpmsg-echo-test rpmsg-mat-mul rpmsg-proxy-app rpmsg-utils \
     "
 
-# for the generic arm64 machine (right now qemuarm64)
-# install all the modules we built
-IMAGE_INSTALL:qemuarm64:append = " kernel-modules"
-
 IMAGE_LINGUAS=""
