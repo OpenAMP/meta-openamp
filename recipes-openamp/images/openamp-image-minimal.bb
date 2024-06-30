@@ -10,6 +10,7 @@ IMAGE_INSTALL:append = " \
     ${CORE_IMAGE_EXTRA_INSTALL} \
     libmetal \
     open-amp \
+    rpmsg-echo-test rpmsg-mat-mul rpmsg-proxy-app rpmsg-utils \
     "
 
 # for the generic arm64 machine (right now qemuarm64)
