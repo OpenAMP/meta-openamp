@@ -45,22 +45,7 @@ PACKAGE_ARCH = "${MACHINE_ARCH}"
 # by default enable proxy apps
 OPENAMP_PROXY ?= "1"
 
-# by default use IPI for polling
-OPENAMP_SHMEM_POLL ?= "0"
-
 EXTRA_OECMAKE:append = " ${@'-DWITH_PROXY=on -DWITH_PROXY_APPS=on' if d.getVar('OPENAMP_PROXY') == '1' else ''}"
-
-#set rpmsg no ipi if applicable
-python rpmsg_no_ipi_setup() {
-    if d.getVar("OPENAMP_SHMEM_POLL") == "1":
-        toolchain_file_path = d.getVar("WORKDIR") + "/toolchain.cmake"
-        toolchain_file = open(toolchain_file_path, "a") # a for append
-        toolchain_file.write(" add_definitions(\" -DRPMSG_NO_IPI=ON \") ")
-}
-
-
-# only add definition after toolchain file has been generated
-do_generate_toolchain_file[postfuncs] += "rpmsg_no_ipi_setup"
 
 ALLOW_EMPTY:${PN}-demos = "1"
 PACKAGES:append = " ${PN}-demos"
