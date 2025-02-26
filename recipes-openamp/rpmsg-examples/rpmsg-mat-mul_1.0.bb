@@ -4,7 +4,7 @@ include rpmsg-example.inc
 
 S = "${WORKDIR}/git/examples/linux/rpmsg-mat-mul"
 
-RRECOMMENDS:${PN} = "kernel-module-rpmsg-char"
+RRECOMMENDS:${PN} = "kernel-module-rpmsg-char kernel-module-rpmsg-ctrl"
 
 FILES:${PN} = "\
 	/usr/bin/mat_mul_demo\

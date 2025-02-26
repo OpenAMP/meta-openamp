@@ -4,7 +4,7 @@ include rpmsg-example.inc
 
 S = "${WORKDIR}/git/examples/linux/rpmsg-proxy-app"
 
-RRECOMMENDS:${PN} = "kernel-module-rpmsg-char"
+RRECOMMENDS:${PN} = "kernel-module-rpmsg-char kernel-module-rpmsg-ctrl"
 
 FILES:${PN} = "\
 	/usr/bin/proxy_app \
