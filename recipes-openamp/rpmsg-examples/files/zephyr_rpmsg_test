@@ -1,0 +1,176 @@
+#!/bin/bash
+
+#
+# Copyright (c) 2026 Advanced Micro Devices, Inc.  All rights reserved.
+#
+# SPDX-License-Identifier: MIT
+#
+
+# Default values
+DEFAULT_DEVICE="/dev/ttyRPMSG0"
+DEFAULT_TEST_STRING="Hello Zephyr"
+DEFAULT_TIMEOUT=10
+
+# Use defaults
+RPMSG_DEV="$DEFAULT_DEVICE"
+TEST_STRING="$DEFAULT_TEST_STRING"
+TIMEOUT="$DEFAULT_TIMEOUT"
+
+TEST_FAILED=0
+
+# Print help message
+print_help() {
+    cat << EOF
+Usage: $0 [OPTIONS]
+
+Zephyr OpenAMP RPMsg Test - Tests RPMsg TTY communication
+
+NOTE: Zephyr firmware must be loaded before running this test:
+      dfx-mgr-client -load vek385-r5-0-zephyr-openamp-rpmsg-multi-srv
+
+OPTIONS:
+    -d <device>     RPMsg device path (default: $DEFAULT_DEVICE)
+    -s <string>     Test string to send (default: "$DEFAULT_TEST_STRING")
+    -t <timeout>    Device wait timeout in seconds (default: $DEFAULT_TIMEOUT)
+    -h              Show this help message
+
+EXAMPLES:
+    # Run with defaults
+    $0
+
+    # Use custom device
+    $0 -d /dev/ttyRPMSG1
+
+    # Use custom test string
+    $0 -s "Custom Message"
+
+COMPLETE WORKFLOW:
+    dfx-mgr-client -load vek385-r5-0-zephyr-openamp-rpmsg-multi-srv
+    $0
+    dfx-mgr-client -remove
+
+EOF
+}
+
+# Parse command line arguments
+while getopts "d:s:t:h" opt; do
+    case $opt in
+        d)
+            RPMSG_DEV="$OPTARG"
+            ;;
+        s)
+            TEST_STRING="$OPTARG"
+            ;;
+        t)
+            TIMEOUT="$OPTARG"
+            ;;
+        h)
+            print_help
+            exit 0
+            ;;
+        \?)
+            echo "Invalid option: -$OPTARG" >&2
+            print_help
+            exit 1
+            ;;
+    esac
+done
+
+echo "========================================="
+echo "Zephyr OpenAMP RPMsg Test"
+echo "========================================="
+echo "Configuration:"
+echo "  Device:   $RPMSG_DEV"
+echo "  String:   $TEST_STRING"
+echo "  Timeout:  ${TIMEOUT}s"
+echo "========================================="
+
+# Cleanup function
+cleanup() {
+    rm -f /tmp/zephyr_rpmsg_output.txt
+}
+
+trap cleanup EXIT
+
+# Wait for RPMsg device
+echo ""
+echo "Waiting for $RPMSG_DEV..."
+DEVICE_FOUND=0
+for i in $(seq 1 $TIMEOUT); do
+    if [ -e "$RPMSG_DEV" ]; then
+        echo "Device $RPMSG_DEV found"
+        DEVICE_FOUND=1
+        break
+    fi
+    echo "Waiting... ($i/$TIMEOUT)"
+    sleep 1
+done
+
+if [ $DEVICE_FOUND -eq 0 ]; then
+    echo "ERROR: $RPMSG_DEV not found after ${TIMEOUT}s"
+    echo "Make sure firmware is loaded: dfx-mgr-client -load <firmware-name>"
+    echo ""
+    echo "Result: FAILED"
+    exit 1
+fi
+
+# Run RPMsg tests
+echo ""
+echo "Running RPMsg communication tests..."
+echo ""
+
+# Start reading in background
+cat "$RPMSG_DEV" > /tmp/zephyr_rpmsg_output.txt 2>&1 &
+CAT_PID=$!
+sleep 1
+
+# Test 1: Send test string
+echo "Sending: \"$TEST_STRING\""
+echo "$TEST_STRING" > "$RPMSG_DEV"
+sleep 1
+
+# Test 2: Send goodbye message
+GOODBYE_STRING="Goodbye Zephyr"
+echo "Sending: \"$GOODBYE_STRING\""
+echo "$GOODBYE_STRING" > "$RPMSG_DEV"
+sleep 1
+
+# Stop reading
+kill $CAT_PID 2>/dev/null
+wait $CAT_PID 2>/dev/null
+
+echo ""
+
+# Validate and display responses
+EXPECTED_1="TTY 0: $TEST_STRING"
+EXPECTED_2="TTY 0: $GOODBYE_STRING"
+
+if grep -q "$EXPECTED_1" /tmp/zephyr_rpmsg_output.txt; then
+    echo "Received: \"$EXPECTED_1\""
+else
+    echo "ERROR: Expected \"$EXPECTED_1\" not received"
+    TEST_FAILED=1
+fi
+
+if grep -q "$EXPECTED_2" /tmp/zephyr_rpmsg_output.txt; then
+    echo "Received: \"$EXPECTED_2\""
+else
+    echo "ERROR: Expected \"$EXPECTED_2\" not received"
+    TEST_FAILED=1
+fi
+
+# Display result
+echo ""
+echo "========================================="
+if [ $TEST_FAILED -eq 0 ]; then
+    echo "Result: PASSED"
+    echo "========================================="
+    exit 0
+else
+    echo "Result: FAILED"
+    echo "========================================="
+    echo ""
+    echo "Actual output received:"
+    cat /tmp/zephyr_rpmsg_output.txt
+    exit 1
+fi
