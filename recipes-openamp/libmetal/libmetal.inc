@@ -47,6 +47,8 @@ EXTRA_OECMAKE = " \
 	-DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
 	"
 
+CFLAGS += " -DATOMIC_VAR_INIT="
+
 ALLOW_EMPTY:${PN}-demos = "1"
 
 PACKAGES:append = " ${PN}-demos"
