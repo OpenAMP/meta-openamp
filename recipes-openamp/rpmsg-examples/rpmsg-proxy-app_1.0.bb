@@ -2,7 +2,7 @@ SUMMARY = "RPMsg examples: proxy file system demo"
 
 include rpmsg-example.inc
 
-S = "${WORKDIR}/git/examples/linux/rpmsg-proxy-app"
+S = "${UNPACKDIR}/${BP}/examples/linux/rpmsg-proxy-app"
 
 RRECOMMENDS:${PN} = "kernel-module-rpmsg-char"
 

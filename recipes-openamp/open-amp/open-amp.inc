@@ -25,8 +25,6 @@ python () {
         raise bb.parse.SkipRecipe("Set PREFERRED_PROVIDER_open-amp to %s to enable it" % (d.getVar("PN")))
 }
 
-S = "${WORKDIR}/git"
-
 DEPENDS = "libmetal"
 
 PROVIDES = "openamp open-amp"

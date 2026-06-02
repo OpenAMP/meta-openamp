@@ -2,7 +2,7 @@ SUMMARY = "RPMsg utilities: utilities for /dev/rpmsg*"
 
 include rpmsg-example.inc
 
-S = "${WORKDIR}/git/examples/linux/rpmsg-utils"
+S = "${UNPACKDIR}/${BP}/examples/linux/rpmsg-utils"
 
 RRECOMMENDS:${PN} = "kernel-module-rpmsg-ctrl kernel-module-rpmsg-char"
 

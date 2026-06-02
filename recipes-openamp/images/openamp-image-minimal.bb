@@ -16,4 +16,4 @@ IMAGE_INSTALL:append = " \
 # install all the modules we built
 IMAGE_INSTALL:qemuarm64:append = " kernel-modules"
 
-IMAGE_LINGUAS=""
+IMAGE_LINGUAS = ""

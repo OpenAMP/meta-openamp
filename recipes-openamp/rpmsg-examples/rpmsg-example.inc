@@ -2,7 +2,7 @@
 HOMEPAGE = "https://github.com/OpenAMP/openamp-system-reference"
 
 LICENSE = "BSD-3-Clause"
-LIC_FILES_CHKSUM = "file://${WORKDIR}/git/LICENSE.md;md5=0b96a4c07d631aa5141bd3f058ba43b0"
+LIC_FILES_CHKSUM = "file://${UNPACKDIR}/${BP}/LICENSE.md;md5=0b96a4c07d631aa5141bd3f058ba43b0"
 
 REPO = "git://github.com/OpenAMP/openamp-system-reference;protocol=https"
 

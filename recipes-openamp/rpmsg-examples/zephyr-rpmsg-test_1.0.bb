@@ -6,7 +6,7 @@ LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda
 
 SRC_URI = "file://zephyr_rpmsg_test"
 
-S = "${WORKDIR}"
+S = "${UNPACKDIR}"
 
 inherit allarch
 RDEPENDS:${PN} = "bash"
@@ -14,7 +14,7 @@ RRECOMMENDS:${PN} = "kernel-module-rpmsg-tty kernel-module-virtio-rpmsg-bus"
 
 do_install() {
     install -d ${D}${bindir}
-    install -m 0755 ${WORKDIR}/zephyr_rpmsg_test ${D}${bindir}/zephyr_rpmsg_test
+    install -m 0755 ${S}/zephyr_rpmsg_test ${D}${bindir}/zephyr_rpmsg_test
 }
 
 FILES:${PN} = "${bindir}/zephyr_rpmsg_test"

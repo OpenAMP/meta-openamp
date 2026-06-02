@@ -26,8 +26,6 @@ python () {
         raise bb.parse.SkipRecipe("Set PREFERRED_PROVIDER_libmetal to %s to enable it" % (d.getVar("PN")))
 }
 
-S = "${WORKDIR}/git"
-
 # if user want to enable hugetlbfs support, please
 # add "DEPENDS:append:pn-libmetal = " libhugetlbfs "" to your local.conf
 DEPENDS = "sysfsutils ${@bb.utils.contains('DISTRO_FEATURES', 'systemd', 'udev', 'eudev', d)}"
