@@ -20,4 +20,7 @@ OPENAMP_SYS_REF_BRANCH ?= "v2024.05"
 BRANCH  = "${OPENAMP_SYS_REF_BRANCH}"
 SRCREV  = "${OPENAMP_SYS_REF_SRCREV}"
 
-SRC_URI = "${REPO};branch=${BRANCH};"
+# force scrathgap to be similar to wrynose and later
+inherit openamp-unpack-compat
+
+SRC_URI = "${REPO};branch=${BRANCH};destsuffix=${BP};"

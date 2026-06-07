@@ -13,7 +13,9 @@ BRANCH ?= "main"
 
 # Sources, by default allow for the use of SRCREV pointing to orphaned tags/commits
 BRANCHARG = "${@['nobranch=1', 'branch=${BRANCH}'][d.getVar('BRANCH', True) != '']}"
-SRC_URI = "${REPO};${BRANCHARG}"
+
+# force scarthgap to use a wrynose like "git" dir
+SRC_URI = "${REPO};${BRANCHARG};destsuffix=${BP}"
 
 # Skip processing of this recipe if it is not explicitly specified as the
 # PREFERRED_PROVIDER for open-amp. This avoids network access required by
@@ -24,6 +26,10 @@ python () {
         d.delVar("BB_DONT_CACHE")
         raise bb.parse.SkipRecipe("Set PREFERRED_PROVIDER_open-amp to %s to enable it" % (d.getVar("PN")))
 }
+
+# force scrathgap to be similar to wrynose and later
+inherit openamp-unpack-compat
+S = "${UNPACKDIR}/${BP}"
 
 DEPENDS = "libmetal"
 
